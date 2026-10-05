@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="MedStock">
+  <meta name="theme-color" content="#0D9488">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" type="image/svg+xml" href="/icon.svg">
+  <link rel="apple-touch-icon" href="/icon.svg">
+  <title>MedStock Pro — Кабинет владельца</title>
+  <!-- Tailwind CSS & Lucide Icons -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap');
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: #F8FAFC;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .font-mono-numbers {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    /* iOS Safe Areas */
+    .pb-safe {
+      padding-bottom: env(safe-area-inset-bottom, 16px);
+    }
+    .pt-safe {
+      padding-top: env(safe-area-inset-top, 12px);
+    }
+    /* Neobank Glass & Card styling */
+    .neobank-card {
+      background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
+      box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.25);
+    }
+    .metric-card {
+      transition: transform 0.15s ease;
+    }
+    .metric-card:active {
+      transform: scale(0.98);
+    }
+    .badge-dc { background-color: #FDF2F8; color: #BE185D; border: 1px solid #FBCFE8; }
+    .badge-eskhata { background-color: #EFF6FF; color: #1D4ED8; border: 1px solid #BFDBFE; }
+    .badge-alif { background-color: #ECFDF5; color: #047857; border: 1px solid #A7F3D0; }
+    .badge-amonat { background-color: #F0FDF4; color: #15803D; border: 1px solid #BBF7D0; }
+  </style>
+</head>
+<body class="min-h-screen text-slate-800 flex flex-col justify-between max-w-md mx-auto bg-[#F8FAFC] shadow-2xl relative select-none">
+
+  <!-- TOP BAR (iOS HEADER) -->
+  <header class="bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-0 z-40 px-5 pt-safe pb-3">
+    <div class="flex items-center justify-between">
+      
+      <!-- User Profile & Title -->
+      <div class="flex items-center gap-3">
+        <div class="relative">
+          <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-sky-600 to-teal-500 flex items-center justify-center text-white shadow-md shadow-teal-500/20 font-bold text-sm">
+            АЧ
+          </div>
+          <span class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 border-2 border-white rounded-full"></span>
+        </div>
+        <div>
+          <div class="flex items-center gap-1.5">
+            <h1 class="text-sm font-extrabold text-slate-900 tracking-tight">Абдуллочон Чабборов</h1>
+            <span class="text-[9px] bg-teal-100 text-teal-800 font-bold px-1.5 py-0.5 rounded-full">Владелец</span>
+          </div>
+          <p class="text-[11px] text-slate-500 font-medium">MedStock Pro • Онлайн мониторинг</p>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="flex items-center gap-2">
+        <button onclick="fetchDashboardData()" id="btn-refresh" class="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-600 transition cursor-pointer" title="Обновить">
+          <i id="refresh-icon" data-lucide="refresh-cw" class="w-4 h-4"></i>
+        </button>
+        <button onclick="logoutOwner()" class="px-2.5 py-1.5 text-xs text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 font-bold rounded-xl transition" title="Выйти">
+          Выйти
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- OWNER AUTHENTICATION OVERLAY (EVERY ENTRANCE) -->
+  <div id="owner-auth-screen" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-8 space-y-6 text-center animate-fade-in border border-slate-100">
+      <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-sky-600 to-teal-500 text-white flex items-center justify-center mx-auto shadow-lg shadow-teal-500/30">
+        <i data-lucide="crown" class="w-8 h-8"></i>
+      </div>
+      <div>
+        <h2 class="text-xl font-extrabold text-slate-900">MedStock Pro</h2>
+        <p class="text-xs text-slate-500 mt-1">Кабинет руководителя</p>
+        <span class="inline-block mt-2 text-[11px] font-bold bg-teal-100 text-teal-800 px-3 py-1 rounded-full uppercase tracking-wider">Владелец: Абдуллочон Чабборов</span>
+      </div>
+
+      <div id="owner-auth-error" class="hidden text-xs text-rose-600 bg-rose-50 border border-rose-200 p-3 rounded-xl font-medium">
+        Неверный логин или пароль владельца!
+      </div>
+
+      <form onsubmit="handleOwnerLogin(event)" class="space-y-4 text-left">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Логин:</label>
+          <input type="text" id="owner-auth-username" required placeholder="asistent" class="w-full text-sm font-semibold px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Пароль:</label>
+          <input type="password" id="owner-auth-password" required placeholder="•••••••••" class="w-full text-sm font-semibold px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500">
+        </div>
+        <button type="submit" class="w-full py-3 bg-gradient-to-r from-teal-600 to-sky-600 hover:from-teal-500 hover:to-sky-500 active:scale-95 text-white font-black text-sm rounded-xl shadow-lg shadow-teal-600/25 transition cursor-pointer">
+          Войти в кабинет
+        </button>
+      </form>
+      <div class="text-[11px] text-slate-400">
+        Логин владельца: <code class="font-bold text-slate-600">asistent</code>
+      </div>
+    </div>
+  </div>
+
+  <!-- PWA INSTALL PROMPT BANNER (FOR SAFARI IPHONE) -->
+  <div id="pwa-install-banner" class="hidden mx-4 mt-3 bg-gradient-to-r from-teal-600 to-sky-700 text-white p-3.5 rounded-2xl shadow-lg shadow-teal-600/20 flex items-center justify-between text-xs">
+    <div class="flex items-center gap-2.5">
+      <div class="p-2 bg-white/20 rounded-xl">
+        <i data-lucide="share" class="w-4 h-4"></i>
+      </div>
+      <div>
+        <div class="font-bold">Установить на iPhone</div>
+        <div class="text-[10px] text-teal-100">Нажмите «Поделиться» → «На экран Домой»</div>
+      </div>
+    </div>
+    <button onclick="document.getElementById('pwa-install-banner').classList.add('hidden')" class="p-1 text-white/70 hover:text-white">
+      <i data-lucide="x" class="w-4 h-4"></i>
+    </button>
+  </div>
+
+  <!-- MAIN SCROLLABLE CONTAINER -->
+  <main class="flex-1 px-4 py-4 space-y-5 overflow-y-auto pb-24">
+
+    <!-- VIEW 1: DASHBOARD -->
+    <div id="view-dashboard" class="space-y-4">
+
+      <!-- 1. NE差异BANK MASTER CARD: КАПИТАЛИЗАЦИЯ СКЛАДА -->
+      <div class="neobank-card rounded-3xl p-6 text-white relative overflow-hidden">
+        <!-- Background Glow Accent -->
+        <div class="absolute -right-8 -top-8 w-40 h-40 bg-teal-500/20 rounded-full blur-2xl pointer-events-none"></div>
+        <div class="absolute -left-8 -bottom-8 w-40 h-40 bg-sky-500/20 rounded-full blur-2xl pointer-events-none"></div>
+
+        <div class="relative z-10 space-y-3">
+          <div class="flex items-center justify-between text-xs text-slate-300">
+            <span class="flex items-center gap-1.5 font-medium">
+              <i data-lucide="landmark" class="w-4 h-4 text-teal-400"></i>
+              <span>Капитализация склада</span>
+            </span>
+            <span class="text-[10px] bg-white/10 px-2 py-0.5 rounded-full border border-white/10 font-bold uppercase tracking-wider text-teal-300">
+              Баланс остатка
+            </span>
+          </div>
+
+          <div>
+            <div class="text-3xl font-black font-mono-numbers tracking-tight text-white">
+              <span id="dash-capitalization">0.00</span>
+              <span class="text-xl font-bold text-teal-400 ml-1">TJS</span>
+            </div>
+            <div class="text-[11px] text-slate-400 mt-1 flex items-center gap-2">
+              <span>Товарных позиций: <strong id="dash-products-count" class="text-slate-200">0</strong></span>
+              <span>•</span>
+              <span>Всего единиц: <strong id="dash-units-count" class="text-slate-200">0</strong></span>
+            </div>
+          </div>
+
+          <!-- Quick breakdown bar -->
+          <div class="pt-2 border-t border-slate-700/60 flex items-center justify-between text-[11px]">
+            <span class="text-slate-400">Плановая выручка:</span>
+            <span class="font-bold text-emerald-400 font-mono-numbers">100% на балансе</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. KPI METRICS (СЧЁТЧИК ДОЛГОВ & РАСХОД КЛИНИКИ) -->
+      <div class="grid grid-cols-2 gap-3">
+        
+        <!-- Debt Counter Card -->
+        <div onclick="switchView('debts')" class="metric-card bg-white p-4 rounded-2xl border border-rose-100 shadow-xs flex flex-col justify-between cursor-pointer">
+          <div class="flex items-center justify-between mb-2">
+            <div class="p-2 bg-rose-50 text-rose-600 rounded-xl">
+              <i data-lucide="user-minus" class="w-5 h-5"></i>
+            </div>
+            <span class="text-[10px] font-bold bg-rose-100 text-rose-800 px-2 py-0.5 rounded-full" id="dash-debtors-badge">3 должника</span>
+          </div>
+          <div>
+            <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Счётчик долгов</div>
+            <div class="text-xs text-rose-500 font-semibold mb-1">«Мне должны клиенты»</div>
+            <div class="text-xl font-black font-mono-numbers text-rose-600">
+              <span id="dash-debts-total">0.00</span> <span class="text-xs font-bold text-slate-500">TJS</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Clinic Expense Card -->
+        <div onclick="filterTransactions('CLINIC_WRITE_OFF')" class="metric-card bg-white p-4 rounded-2xl border border-amber-100 shadow-xs flex flex-col justify-between cursor-pointer">
+          <div class="flex items-center justify-between mb-2">
+            <div class="p-2 bg-amber-50 text-amber-600 rounded-xl">
+              <i data-lucide="hospital" class="w-5 h-5"></i>
+            </div>
+            <span class="text-[10px] font-bold bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full" id="dash-clinic-badge">За этот месяц</span>
+          </div>
+          <div>
+            <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Расход клиники</div>
+            <div class="text-xs text-amber-600 font-semibold mb-1">Внутр. потребление</div>
+            <div class="text-xl font-black font-mono-numbers text-amber-600">
+              <span id="dash-clinic-expense">0.00</span> <span class="text-xs font-bold text-slate-500">TJS</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- 3. ВЫРУЧКА ЗА СЕГОДНЯ (НАЛИЧНЫЕ VS БЕЗНАЛ РТ) -->
+      <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-xs space-y-4">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <div class="p-1.5 bg-teal-50 text-teal-600 rounded-lg">
+              <i data-lucide="wallet-cards" class="w-4 h-4"></i>
+            </div>
+            <h2 class="text-xs font-bold text-slate-700 uppercase tracking-wider">Выручка за сегодня</h2>
+          </div>
+          <div class="text-sm font-black font-mono-numbers text-slate-900">
+            <span id="dash-today-total">0.00</span> TJS
+          </div>
+        </div>
+
+        <!-- Cash vs Cashless Breakdown -->
+        <div class="grid grid-cols-2 gap-3">
+          <div class="p-3 bg-emerald-50/70 border border-emerald-200/60 rounded-2xl">
+            <div class="flex items-center gap-1.5 text-xs font-bold text-emerald-800 mb-1">
+              <i data-lucide="banknote" class="w-3.5 h-3.5"></i>
+              <span>Наличные кассы</span>
+            </div>
+            <div class="text-lg font-black font-mono-numbers text-emerald-700">
+              <span id="dash-today-cash">0.00</span> <span class="text-xs font-normal">TJS</span>
+            </div>
+          </div>
+
+          <div class="p-3 bg-sky-50/70 border border-sky-200/60 rounded-2xl">
+            <div class="flex items-center gap-1.5 text-xs font-bold text-sky-800 mb-1">
+              <i data-lucide="qr-code" class="w-3.5 h-3.5"></i>
+              <span>Безналичный перевод</span>
+            </div>
+            <div class="text-lg font-black font-mono-numbers text-sky-700">
+              <span id="dash-today-cashless">0.00</span> <span class="text-xs font-normal">TJS</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tajikistan Banks Breakdown Pills -->
+        <div class="space-y-1.5 pt-1 border-t border-slate-100">
+          <div class="text-[11px] font-semibold text-slate-500 mb-1">Банки Таджикистана:</div>
+          
+          <div class="grid grid-cols-2 gap-2 text-xs">
+            <div class="flex items-center justify-between p-2 rounded-xl badge-dc">
+              <span class="font-bold text-[11px]">Dushanbe City:</span>
+              <span class="font-mono-numbers font-bold" id="bank-val-dc">0.00 TJS</span>
+            </div>
+            <div class="flex items-center justify-between p-2 rounded-xl badge-eskhata">
+              <span class="font-bold text-[11px]">Банк Эсхата:</span>
+              <span class="font-mono-numbers font-bold" id="bank-val-eskhata">0.00 TJS</span>
+            </div>
+            <div class="flex items-center justify-between p-2 rounded-xl badge-alif">
+              <span class="font-bold text-[11px]">Alif Mobi:</span>
+              <span class="font-mono-numbers font-bold" id="bank-val-alif">0.00 TJS</span>
+            </div>
+            <div class="flex items-center justify-between p-2 rounded-xl badge-amonat">
+              <span class="font-bold text-[11px]">Амонатбонк:</span>
+              <span class="font-mono-numbers font-bold" id="bank-val-amonat">0.00 TJS</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. RECENT TRANSACTIONS PREVIEW -->
+      <div class="space-y-3">
+        <div class="flex items-center justify-between">
+          <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+            <i data-lucide="activity" class="w-4 h-4 text-teal-600"></i>
+            <span>Лента активности (Транзакции)</span>
+          </h3>
+          <button onclick="switchView('transactions')" class="text-xs font-bold text-teal-600 hover:text-teal-700">
+            Все →
+          </button>
+        </div>
+
+        <div id="dash-recent-list" class="space-y-2.5">
+          <!-- Populated dynamically via JS -->
+        </div>
+      </div>
+
+    </div>
+
+    <!-- VIEW 2: DEBTS (РАЗДЕЛ «ДЕБИТОРЫ») -->
+    <div id="view-debts" class="space-y-4 hidden">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-base font-bold text-slate-900">Реестр должников</h2>
+          <p class="text-xs text-slate-500">Товары, взятые под реализацию</p>
+        </div>
+        <div class="text-right">
+          <span class="text-[10px] text-slate-400 font-bold uppercase">Сумма долгов</span>
+          <div class="text-base font-black font-mono-numbers text-rose-600" id="debts-view-total">0.00 TJS</div>
+        </div>
+      </div>
+
+      <div id="debts-list-container" class="space-y-3">
+        <!-- Debtor Cards dynamically populated -->
+      </div>
+    </div>
+
+    <!-- VIEW 3: TRANSACTIONS FEED (ЖУРНАЛ С ТАБЛИЦЕЙ ТЗ) -->
+    <div id="view-transactions" class="space-y-4 hidden">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-base font-bold text-slate-900">Журнал списаний и продаж</h2>
+          <p class="text-xs text-slate-500">Полный реестр операций склада</p>
+        </div>
+      </div>
+
+      <!-- Filter chips -->
+      <div class="flex gap-2 text-xs overflow-x-auto pb-1">
+        <button onclick="filterFeed('ALL')" id="filter-btn-all" class="filter-chip px-3 py-1.5 rounded-full font-bold bg-slate-900 text-white">Все</button>
+        <button onclick="filterFeed('SALE')" id="filter-btn-sale" class="filter-chip px-3 py-1.5 rounded-full font-semibold bg-white border border-slate-200 text-slate-600">Продажи</button>
+        <button onclick="filterFeed('CLINIC_WRITE_OFF')" id="filter-btn-clinic" class="filter-chip px-3 py-1.5 rounded-full font-semibold bg-white border border-slate-200 text-slate-600">В клинику</button>
+        <button onclick="filterFeed('DEBT')" id="filter-btn-debt" class="filter-chip px-3 py-1.5 rounded-full font-semibold bg-white border border-slate-200 text-slate-600">В долг</button>
+      </div>
+
+      <div id="transactions-feed-container" class="space-y-2.5">
+        <!-- Dynamically rendered -->
+      </div>
+    </div>
+
+    <!-- VIEW 4: PRODUCTS / STOCK -->
+    <div id="view-products" class="space-y-4 hidden">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-base font-bold text-slate-900">Остатки на складе</h2>
+          <p class="text-xs text-slate-500">Текущий физический баланс медикаментов</p>
+        </div>
+      </div>
+
+      <div class="relative">
+        <input type="text" id="pwa-prod-search" oninput="renderPwaProducts(this.value)" placeholder="Поиск медикамента по названию..." class="w-full text-xs px-3.5 py-2.5 bg-white border border-slate-200 rounded-2xl pl-9 focus:outline-none focus:ring-2 focus:ring-teal-500">
+        <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-3"></i>
+      </div>
+
+      <div id="pwa-products-container" class="space-y-2.5">
+        <!-- Products list dynamically rendered -->
+      </div>
+    </div>
+
+  </main>
+
+  <!-- REPAY DEBT MODAL -->
+  <div id="modal-pay-debt" class="fixed inset-0 bg-slate-950/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 z-50 hidden">
+    <div class="bg-white rounded-t-3xl sm:rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl">
+      <div class="flex justify-between items-start border-b border-slate-100 pb-3">
+        <div>
+          <h3 class="font-extrabold text-base text-slate-900">Погашение долга</h3>
+          <p class="text-xs text-slate-500" id="pay-modal-debtor-name">Аптека «Шифо»</p>
+        </div>
+        <button onclick="closePayModal()" class="text-slate-400 hover:text-slate-600 p-1">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div class="p-3 bg-slate-50 rounded-xl flex justify-between items-baseline">
+          <span class="text-slate-500 font-semibold">Текущий остаток долга:</span>
+          <span class="text-lg font-black font-mono-numbers text-rose-600" id="pay-modal-remaining">0.00 TJS</span>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Сумма к оплате (TJS):</label>
+          <input type="number" step="0.5" id="pay-modal-amount" class="w-full text-base font-bold font-mono-numbers px-3 py-2 bg-white border border-slate-300 rounded-xl">
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Способ зачисления:</label>
+          <select id="pay-modal-method" class="w-full font-semibold px-3 py-2 bg-white border border-slate-300 rounded-xl">
+            <option value="CASH">Наличные (Касса)</option>
+            <option value="Dushanbe City (DC)">Dushanbe City (DC)</option>
+            <option value="Алиф Банк / Alif Mobi">Алиф Банк / Alif Mobi</option>
+            <option value="Банк Эсхата">Банк Эсхата</option>
+            <option value="Амонатбонк">Амонатбонк</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Номер квитанции / чек:</label>
+          <input type="text" id="pay-modal-ref" placeholder="Напр: DC-984019" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl">
+        </div>
+
+        <button onclick="submitDebtPayment()" class="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-black text-sm rounded-xl shadow-lg shadow-emerald-600/20 active:scale-95 transition cursor-pointer">
+          Подтвердить погашение
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SHARE REMINDER MODAL (WHATSAPP / TELEGRAM) -->
+  <div id="modal-share-reminder" class="fixed inset-0 bg-slate-950/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 z-50 hidden">
+    <div class="bg-white rounded-t-3xl sm:rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl">
+      <div class="flex justify-between items-start border-b border-slate-100 pb-3">
+        <div>
+          <h3 class="font-extrabold text-base text-slate-900">Напоминание о долге</h3>
+          <p class="text-xs text-slate-500" id="share-modal-debtor">Должник</p>
+        </div>
+        <button onclick="closeShareModal()" class="text-slate-400 hover:text-slate-600 p-1">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Текст уведомления (на таджикском / русском):</label>
+          <textarea id="share-modal-text" rows="4" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none"></textarea>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 pt-1">
+          <a id="share-btn-wa" href="#" target="_blank" class="py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl flex items-center justify-center gap-1.5 shadow-md shadow-emerald-500/20 active:scale-95 transition">
+            <i data-lucide="message-circle" class="w-4 h-4"></i>
+            <span>WhatsApp</span>
+          </a>
+
+          <a id="share-btn-tg" href="#" target="_blank" class="py-3 bg-sky-500 hover:bg-sky-600 text-white font-bold rounded-xl flex items-center justify-center gap-1.5 shadow-md shadow-sky-500/20 active:scale-95 transition">
+            <i data-lucide="send" class="w-4 h-4"></i>
+            <span>Telegram</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTTOM FIXED NAVIGATION BAR (NEOBANK TAB BAR) -->
+  <nav class="bg-white/95 backdrop-blur-lg border-t border-slate-200 fixed bottom-0 left-0 right-0 max-w-md mx-auto z-40 px-3 py-2 pb-safe shadow-lg">
+    <div class="flex justify-around items-center text-[10px] font-bold">
+      
+      <button onclick="switchView('dashboard')" id="nav-btn-dashboard" class="nav-btn flex flex-col items-center gap-1 py-1 px-3 text-teal-600">
+        <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+        <span>Дашборд</span>
+      </button>
+
+      <button onclick="switchView('debts')" id="nav-btn-debts" class="nav-btn flex flex-col items-center gap-1 py-1 px-3 text-slate-400 hover:text-slate-600">
+        <i data-lucide="users" class="w-5 h-5"></i>
+        <span>Дебиторы</span>
+      </button>
+
+      <button onclick="switchView('transactions')" id="nav-btn-transactions" class="nav-btn flex flex-col items-center gap-1 py-1 px-3 text-slate-400 hover:text-slate-600">
+        <i data-lucide="receipt" class="w-5 h-5"></i>
+        <span>Операции</span>
+      </button>
+
+      <button onclick="switchView('products')" id="nav-btn-products" class="nav-btn flex flex-col items-center gap-1 py-1 px-3 text-slate-400 hover:text-slate-600">
+        <i data-lucide="boxes" class="w-5 h-5"></i>
+        <span>Остатки</span>
+      </button>
+
+    </div>
+  </nav>
+
+  <!-- PWA CLIENT LOGIC SCRIPT -->
+  <script>
+    let dashboardData = null;
+    let debtsData = [];
+    let productsData = [];
+    let activeDebtToPay = null;
+    let currentFeedFilter = 'ALL';
+
+    // Authentication for Owner (Абдуллочон Чабборов)
+    function handleOwnerLogin(e) {
+      e.preventDefault();
+      const u = document.getElementById('owner-auth-username').value.trim();
+      const p = document.getElementById('owner-auth-password').value;
+      const errEl = document.getElementById('owner-auth-error');
+
+      // Owner credentials: login asistent, password 123456781
+      if (u.toLowerCase() === 'asistent' && p === '123456781') {
+        document.getElementById('owner-auth-screen').classList.add('hidden');
+        errEl.classList.add('hidden');
+        document.getElementById('owner-auth-password').value = '';
+        fetchDashboardData();
+        fetchDebtsData();
+        fetchProductsData();
+      } else {
+        errEl.classList.remove('hidden');
+        errEl.innerText = 'Неверный пароль владельца! (Требуется: asistent / 123456781)';
+      }
+    }
+
+    function logoutOwner() {
+      document.getElementById('owner-auth-screen').classList.remove('hidden');
+      document.getElementById('owner-auth-password').value = '';
+      document.getElementById('owner-auth-username').focus();
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+      // Prompt for login on every entrance
+      document.getElementById('owner-auth-screen').classList.remove('hidden');
+      document.getElementById('owner-auth-username').focus();
+      fetchDebtsData();
+      fetchProductsData();
+
+      // Register Service Worker for PWA
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js').catch(err => console.log('SW error:', err));
+      }
+
+      // Check if iOS Safari and not standalone
+      const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
+      const isStandalone = window.navigator.standalone === true;
+      if (isIos && !isStandalone) {
+        document.getElementById('pwa-install-banner').classList.remove('hidden');
+      }
+    });
+
+    // View Switching
+    function switchView(viewName) {
+      document.querySelectorAll('#view-dashboard, #view-debts, #view-transactions, #view-products').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.nav-btn').forEach(b => {
+        b.classList.remove('text-teal-600');
+        b.classList.add('text-slate-400');
+      });
+
+      const target = document.getElementById(`view-${viewName}`);
+      if (target) target.classList.remove('hidden');
+
+      const activeNav = document.getElementById(`nav-btn-${viewName}`);
+      if (activeNav) {
+        activeNav.classList.remove('text-slate-400');
+        activeNav.classList.add('text-teal-600');
+      }
+
+      lucide.createIcons();
+    }
+
+    // Fetch Dashboard Analytics
+    async function fetchDashboardData() {
+      const refreshIcon = document.getElementById('refresh-icon');
+      refreshIcon.classList.add('animate-spin');
+
+      try {
+        const res = await fetch('/api/analytics/dashboard');
+        const data = await res.json();
+        dashboardData = data;
+        renderDashboard();
+      } catch (err) {
+        console.error('Ошибка аналитики:', err);
+      } finally {
+        setTimeout(() => refreshIcon.classList.remove('animate-spin'), 600);
+      }
+    }
+
+    // Render Dashboard UI
+    function renderDashboard() {
+      if (!dashboardData) return;
+      const k = dashboardData.kpis;
+
+      // 1. Capitalization
+      document.getElementById('dash-capitalization').innerText = k.capitalization.toLocaleString('ru-RU', { minimumFractionDigits: 2 });
+      document.getElementById('dash-products-count').innerText = k.productsCount;
+      document.getElementById('dash-units-count').innerText = k.totalUnits.toLocaleString('ru-RU');
+
+      // 2. Debts
+      document.getElementById('dash-debts-total').innerText = k.totalDebts.toLocaleString('ru-RU', { minimumFractionDigits: 2 });
+      document.getElementById('dash-debtors-badge').innerText = `${k.activeDebtorsCount} должников`;
+      document.getElementById('debts-view-total').innerText = `${k.totalDebts.toLocaleString('ru-RU', { minimumFractionDigits: 2 })} TJS`;
+
+      // 3. Clinic Expense
+      document.getElementById('dash-clinic-expense').innerText = k.clinicExpenseMonth.toLocaleString('ru-RU', { minimumFractionDigits: 2 });
+      document.getElementById('dash-clinic-badge').innerText = `${k.clinicOperationsCount} списаний`;
+
+      // 4. Today Revenue
+      document.getElementById('dash-today-total').innerText = k.revenueToday.total.toLocaleString('ru-RU', { minimumFractionDigits: 2 });
+      document.getElementById('dash-today-cash').innerText = k.revenueToday.cash.toLocaleString('ru-RU', { minimumFractionDigits: 2 });
+      document.getElementById('dash-today-cashless').innerText = k.revenueToday.cashless.toLocaleString('ru-RU', { minimumFractionDigits: 2 });
+
+      // Bank Breakdown
+      const b = k.revenueToday.banks;
+      document.getElementById('bank-val-dc').innerText = `${(b['Dushanbe City (DC)'] || 0).toFixed(2)} TJS`;
+      document.getElementById('bank-val-eskhata').innerText = `${(b['Банк Эсхата'] || 0).toFixed(2)} TJS`;
+      document.getElementById('bank-val-alif').innerText = `${(b['Алиф Банк / Alif Mobi'] || 0).toFixed(2)} TJS`;
+      document.getElementById('bank-val-amonat').innerText = `${(b['Амонатбонк / Другой банк'] || 0).toFixed(2)} TJS`;
+
+      // Recent Transactions in Dashboard
+      renderRecentTransactions(dashboardData.transactions || []);
+      renderFullFeed(dashboardData.transactions || []);
+    }
+
+    // Render Activity Feed (TOR Section 6 Table match)
+    function renderRecentTransactions(list) {
+      const container = document.getElementById('dash-recent-list');
+      container.innerHTML = list.slice(0, 5).map(tx => renderTxCard(tx)).join('');
+      lucide.createIcons();
+    }
+
+    function renderFullFeed(list) {
+      const container = document.getElementById('transactions-feed-container');
+      let filtered = list;
+      if (currentFeedFilter === 'SALE') filtered = list.filter(t => t.type === 'SALE' && t.paymentType !== 'DEBT');
+      if (currentFeedFilter === 'CLINIC_WRITE_OFF') filtered = list.filter(t => t.type === 'CLINIC_WRITE_OFF');
+      if (currentFeedFilter === 'DEBT') filtered = list.filter(t => t.paymentType === 'DEBT');
+
+      if (filtered.length === 0) {
+        container.innerHTML = '<div class="text-center py-8 text-slate-400 text-xs">Нет записей по фильтру</div>';
+        return;
+      }
+
+      container.innerHTML = filtered.map(tx => renderTxCard(tx)).join('');
+      lucide.createIcons();
+    }
+
+    function renderTxCard(tx) {
+      let icon = 'shopping-bag';
+      let iconColor = 'text-emerald-600 bg-emerald-50';
+
+      if (tx.type === 'CLINIC_WRITE_OFF') {
+        icon = 'hospital';
+        iconColor = 'text-amber-600 bg-amber-50';
+      } else if (tx.paymentType === 'DEBT') {
+        icon = 'clock';
+        iconColor = 'text-rose-600 bg-rose-50';
+      } else if (tx.paymentType === 'BANK_TRANSFER') {
+        icon = 'credit-card';
+        iconColor = 'text-sky-600 bg-sky-50';
+      }
+
+      return `
+        <div class="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-xs flex items-center justify-between gap-3">
+          <div class="flex items-center gap-3">
+            <div class="p-2.5 rounded-xl ${iconColor}">
+              <i data-lucide="${icon}" class="w-4 h-4"></i>
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="font-bold text-xs text-slate-900">${tx.operationCode}</span>
+                <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full ${tx.financeColor}">
+                  ${tx.categoryBadge}
+                </span>
+              </div>
+              <div class="text-[11px] text-slate-500 font-medium line-clamp-1 mt-0.5">${tx.itemsSummary}</div>
+            </div>
+          </div>
+          <div class="text-right">
+            <div class="text-xs font-black font-mono-numbers ${tx.type === 'CLINIC_WRITE_OFF' ? 'text-amber-600' : 'text-slate-900'}">
+              ${tx.financeText}
+            </div>
+            <div class="text-[10px] text-slate-400 font-mono mt-0.5">
+              ${new Date(tx.createdAt).toLocaleTimeString('ru-RU').slice(0, 5)}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function filterFeed(type) {
+      currentFeedFilter = type;
+      document.querySelectorAll('.filter-chip').forEach(b => {
+        b.classList.remove('bg-slate-900', 'text-white');
+        b.classList.add('bg-white', 'text-slate-600');
+      });
+      const active = document.getElementById(`filter-btn-${type.toLowerCase()}`);
+      if (active) {
+        active.classList.add('bg-slate-900', 'text-white');
+        active.classList.remove('bg-white', 'text-slate-600');
+      }
+      renderFullFeed(dashboardData ? dashboardData.transactions : []);
+    }
+
+    function filterTransactions(type) {
+      switchView('transactions');
+      filterFeed(type);
+    }
+
+    // DEBTS MODULE
+    async function fetchDebtsData() {
+      try {
+        const res = await fetch('/api/debts');
+        const data = await res.json();
+        debtsData = data.debts || [];
+        renderDebtsList();
+      } catch (err) {
+        console.error('Ошибка загрузки дебиторов:', err);
+      }
+    }
+
+    function renderDebtsList() {
+      const container = document.getElementById('debts-list-container');
+      if (debtsData.length === 0) {
+        container.innerHTML = '<div class="text-center py-10 text-slate-400 text-xs">Должников нет</div>';
+        return;
+      }
+
+      container.innerHTML = debtsData.map(d => `
+        <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs space-y-3">
+          <div class="flex justify-between items-start">
+            <div>
+              <h3 class="font-bold text-sm text-slate-900">${d.debtor_name}</h3>
+              <div class="text-xs text-slate-500 font-mono flex items-center gap-1.5 mt-0.5">
+                <i data-lucide="phone" class="w-3 h-3 text-slate-400"></i>
+                <a href="tel:${d.phone}" class="hover:underline">${d.phone || 'Нет номера'}</a>
+              </div>
+            </div>
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${d.status === 'PAID' ? 'bg-emerald-100 text-emerald-800' : (d.isOverdue ? 'bg-rose-100 text-rose-800 animate-pulse' : 'bg-amber-100 text-amber-800')}">
+              ${d.status === 'PAID' ? 'Погашен' : (d.isOverdue ? `Просрочен на ${d.daysOverdue} дн.` : 'Активный долг')}
+            </span>
+          </div>
+
+          <div class="text-xs text-slate-600 bg-slate-50 p-2.5 rounded-xl">
+            <span class="text-slate-400">Товары:</span> ${d.items_summary || 'Партия медикаментов'}
+            <div class="text-[10px] text-slate-400 mt-1">
+              Взят: ${new Date(d.issue_date).toLocaleDateString('ru-RU')} ${d.due_date ? '• Срок: ' + new Date(d.due_date).toLocaleDateString('ru-RU') : ''}
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between pt-1">
+            <div>
+              <div class="text-[10px] text-slate-400 uppercase font-semibold">Остаток долга:</div>
+              <div class="text-lg font-black font-mono-numbers text-rose-600">${d.remaining_amount.toFixed(2)} TJS</div>
+            </div>
+
+            <!-- Action Buttons for Owner -->
+            <div class="flex items-center gap-1.5">
+              ${d.phone ? `
+                <a href="tel:${d.phone}" class="p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl" title="Позвонить">
+                  <i data-lucide="phone-call" class="w-4 h-4"></i>
+                </a>
+                <button onclick="openShareModal('${d.id}')" class="p-2.5 bg-teal-50 hover:bg-teal-100 text-teal-700 rounded-xl" title="Напомнить в мессенджере">
+                  <i data-lucide="send" class="w-4 h-4"></i>
+                </button>
+              ` : ''}
+
+              ${d.remaining_amount > 0 ? `
+                <button onclick="openPayModal('${d.id}')" class="px-3.5 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 text-white text-xs font-bold rounded-xl shadow-md shadow-teal-600/20 active:scale-95 transition">
+                  Погасить
+                </button>
+              ` : ''}
+            </div>
+          </div>
+        </div>
+      `).join('');
+      lucide.createIcons();
+    }
+
+    // REPAY DEBT MODAL
+    function openPayModal(debtId) {
+      const debt = debtsData.find(d => d.id === debtId);
+      if (!debt) return;
+      activeDebtToPay = debt;
+
+      document.getElementById('pay-modal-debtor-name').innerText = debt.debtor_name;
+      document.getElementById('pay-modal-remaining').innerText = `${debt.remaining_amount.toFixed(2)} TJS`;
+      document.getElementById('pay-modal-amount').value = debt.remaining_amount;
+      document.getElementById('modal-pay-debt').classList.remove('hidden');
+    }
+
+    function closePayModal() {
+      document.getElementById('modal-pay-debt').classList.add('hidden');
+      activeDebtToPay = null;
+    }
+
+    async function submitDebtPayment() {
+      if (!activeDebtToPay) return;
+      const amount = parseFloat(document.getElementById('pay-modal-amount').value);
+      const method = document.getElementById('pay-modal-method').value;
+      const ref = document.getElementById('pay-modal-ref').value;
+
+      if (!amount || amount <= 0) {
+        alert('Введите корректную сумму погашения!');
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/debts/${activeDebtToPay.id}/pay`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            amount,
+            payment_method: method,
+            transaction_reference: ref
+          })
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+
+        alert('Погашение успешно зафиксировано!');
+        closePayModal();
+        fetchDebtsData();
+        fetchDashboardData();
+      } catch (err) {
+        alert('Ошибка: ' + err.message);
+      }
+    }
+
+    // SHARE REMINDER MODAL
+    async function openShareModal(debtId) {
+      try {
+        const res = await fetch(`/api/debts/${debtId}/reminder-text`);
+        const data = await res.json();
+        const debt = debtsData.find(d => d.id === debtId);
+
+        document.getElementById('share-modal-debtor').innerText = `${debt ? debt.debtor_name : ''} (${data.phone})`;
+        document.getElementById('share-modal-text').value = `${data.textRu}\n\n${data.textTj}`;
+
+        document.getElementById('share-btn-wa').href = data.whatsappUrlRu;
+        document.getElementById('share-btn-tg').href = data.telegramUrlRu;
+
+        document.getElementById('modal-share-reminder').classList.remove('hidden');
+      } catch (err) {
+        alert('Ошибка получения шаблона: ' + err.message);
+      }
+    }
+
+    function closeShareModal() {
+      document.getElementById('modal-share-reminder').classList.add('hidden');
+    }
+
+    // PRODUCTS LIST VIEW
+    async function fetchProductsData() {
+      try {
+        const res = await fetch('/api/products');
+        const data = await res.json();
+        productsData = data.products || [];
+        renderPwaProducts();
+      } catch (err) {
+        console.error('Ошибка загрузки остатков:', err);
+      }
+    }
+
+    function renderPwaProducts(filterQuery = '') {
+      const container = document.getElementById('pwa-products-container');
+      const q = (filterQuery || '').toLowerCase().trim();
+      const list = q ? productsData.filter(p => p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q) || p.barcode.includes(q)) : productsData;
+
+      if (list.length === 0) {
+        container.innerHTML = '<div class="text-center py-8 text-slate-400 text-xs">Медикаменты не найдены</div>';
+        return;
+      }
+
+      container.innerHTML = list.map(p => `
+        <div class="bg-white p-3 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between gap-3">
+          <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-xl bg-slate-100 overflow-hidden flex items-center justify-center border border-slate-100 shrink-0">
+              ${p.photo_url ? `<img src="${p.photo_url}" class="w-full h-full object-cover">` : `<i data-lucide="pill" class="w-5 h-5 text-slate-400"></i>`}
+            </div>
+            <div>
+              <div class="font-bold text-xs text-slate-900 line-clamp-1">${p.name}</div>
+              <div class="text-[10px] text-slate-400 font-mono">${p.sku} • ${p.barcode}</div>
+              <div class="text-[11px] font-semibold text-teal-700 mt-0.5">
+                Остаток: <strong>${p.stock_quantity} ${p.unit}</strong>
+              </div>
+            </div>
+          </div>
+          <div class="text-right shrink-0">
+            <div class="text-xs font-black font-mono-numbers text-slate-900">${p.retail_price.toFixed(2)} TJS</div>
+            <div class="text-[10px] text-slate-400 font-mono">Партия: ${(p.batch_value || (p.stock_quantity * p.retail_price)).toFixed(0)} TJS</div>
+          </div>
+        </div>
+      `).join('');
+      lucide.createIcons();
+    }
+  </script>
+</body>
+</html>

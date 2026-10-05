@@ -1,0 +1,1495 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MedStock Pro — Рабочее место склада (Windows PC)</title>
+  <!-- Tailwind CSS & Lucide Icons -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap');
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: #F8FAFC;
+    }
+    .font-mono-numbers {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+    .badge-dc { background-color: #FDF2F8; color: #DB2777; border-color: #FBCFE8; }
+    .badge-eskhata { background-color: #EFF6FF; color: #2563EB; border-color: #BFDBFE; }
+    .badge-alif { background-color: #ECFDF5; color: #059669; border-color: #A7F3D0; }
+    .badge-amonat { background-color: #F0FDF4; color: #16A34A; border-color: #BBF7D0; }
+    
+    @media print {
+      body * {
+        visibility: hidden;
+      }
+      #receipt-print-area, #receipt-print-area * {
+        visibility: visible;
+      }
+      #receipt-print-area {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body class="min-h-screen text-slate-800 flex flex-col antialiased select-none">
+
+  <!-- TOP APP BAR -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-40 px-6 py-3 shadow-xs">
+    <div class="flex items-center justify-between">
+      <!-- Brand & Mode -->
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-600 to-teal-500 flex items-center justify-center text-white shadow-md shadow-sky-500/20">
+          <i data-lucide="package-check" class="w-6 h-6"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-lg font-bold text-slate-900 tracking-tight">MedStock Pro</h1>
+            <span class="text-[10px] font-semibold bg-sky-100 text-sky-800 px-2 py-0.5 rounded-full uppercase tracking-wider">Windows Desktop</span>
+          </div>
+          <p class="text-xs text-slate-500 font-medium">Автономный складской терминал • Офлайн SQLite БД</p>
+        </div>
+      </div>
+
+      <!-- Sync Status & Action Bar -->
+      <div class="flex items-center gap-4">
+        <!-- Offline / Online Status Pill -->
+        <div id="connection-pill" class="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+          <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span id="connection-text">Онлайн • Локальная БД</span>
+        </div>
+
+        <!-- Pending Sync Counter -->
+        <div id="pending-badge-container" class="hidden">
+          <span class="px-2.5 py-1 bg-amber-100 text-amber-800 text-xs font-bold rounded-lg border border-amber-300 flex items-center gap-1.5">
+            <i data-lucide="cloud-off" class="w-3.5 h-3.5"></i>
+            <span id="pending-count-text">0 чеков офлайн</span>
+          </span>
+        </div>
+
+        <!-- Sync Button -->
+        <button id="btn-sync" onclick="triggerSync()" class="relative flex items-center gap-2 bg-gradient-to-r from-sky-600 to-teal-600 hover:from-sky-500 hover:to-teal-500 active:scale-95 text-white text-xs font-bold px-4 py-2 rounded-xl shadow-md shadow-sky-600/20 transition-all cursor-pointer">
+          <i id="sync-icon" data-lucide="refresh-cw" class="w-4 h-4 transition-transform duration-700"></i>
+          <span>Синхронизировать</span>
+        </button>
+
+        <!-- Divider -->
+        <div class="h-6 w-px bg-slate-200"></div>
+
+        <!-- Assistant User Badge -->
+        <div class="flex items-center gap-2.5 pl-1">
+          <div class="w-8 h-8 rounded-full bg-sky-100 text-sky-800 font-bold flex items-center justify-center text-xs">
+            АС
+          </div>
+          <div class="text-left leading-tight hidden md:block">
+            <div class="text-xs font-bold text-slate-800">Ассистент</div>
+            <div class="text-[10px] text-slate-500">Оператор склада</div>
+          </div>
+          <button onclick="logoutDesktop()" class="ml-2 text-xs text-rose-500 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 px-2 py-1 rounded-lg font-semibold transition" title="Заблокировать терминал">
+            Выйти
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- AUTHENTICATION OVERLAY (EVERY ENTRANCE) -->
+  <div id="auth-screen" class="fixed inset-0 bg-slate-900/90 backdrop-blur-md flex items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-8 space-y-6 text-center animate-fade-in border border-slate-100">
+      <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-sky-600 to-teal-500 text-white flex items-center justify-center mx-auto shadow-lg shadow-sky-500/30">
+        <i data-lucide="shield-check" class="w-8 h-8"></i>
+      </div>
+      <div>
+        <h2 class="text-xl font-extrabold text-slate-900">MedStock Pro</h2>
+        <p class="text-xs text-slate-500 mt-1">Авторизация терминала склада</p>
+        <span class="inline-block mt-2 text-[11px] font-bold bg-sky-100 text-sky-800 px-3 py-1 rounded-full uppercase tracking-wider">Роль: Ассистент</span>
+      </div>
+
+      <div id="auth-error" class="hidden text-xs text-rose-600 bg-rose-50 border border-rose-200 p-3 rounded-xl font-medium">
+        Неверный логин или пароль ассистента!
+      </div>
+
+      <form onsubmit="handleDesktopLogin(event)" class="space-y-4 text-left">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Логин:</label>
+          <input type="text" id="auth-username" required placeholder="asistent" class="w-full text-sm font-semibold px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-500">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Пароль:</label>
+          <input type="password" id="auth-password" required placeholder="••••••••" class="w-full text-sm font-semibold px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-500">
+        </div>
+        <button type="submit" class="w-full py-3 bg-gradient-to-r from-sky-600 to-teal-600 hover:from-sky-500 hover:to-teal-500 active:scale-95 text-white font-black text-sm rounded-xl shadow-lg shadow-sky-600/25 transition cursor-pointer">
+          Войти в систему
+        </button>
+      </form>
+      <div class="text-[11px] text-slate-400">
+        Логин ассистента: <code class="font-bold text-slate-600">asistent</code>
+      </div>
+    </div>
+  </div>
+
+  <!-- NAVIGATION TABS -->
+  <div class="bg-white border-b border-slate-200 px-6">
+    <nav class="flex gap-2 text-sm font-semibold overflow-x-auto py-2">
+      <button onclick="switchTab('pos')" id="tab-btn-pos" class="tab-btn flex items-center gap-2 px-4 py-2.5 rounded-xl transition text-sky-600 bg-sky-50 font-bold">
+        <i data-lucide="shopping-cart" class="w-4 h-4"></i>
+        <span>Касса / Продажа [F2]</span>
+      </button>
+
+      <button onclick="switchTab('clinic')" id="tab-btn-clinic" class="tab-btn flex items-center gap-2 px-4 py-2.5 rounded-xl transition text-slate-600 hover:bg-slate-100">
+        <i data-lucide="cross" class="w-4 h-4 text-emerald-600"></i>
+        <span>Списание в клинику [F3]</span>
+        <span class="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.5 rounded">0.00 TJS</span>
+      </button>
+
+      <button onclick="switchTab('receive')" id="tab-btn-receive" class="tab-btn flex items-center gap-2 px-4 py-2.5 rounded-xl transition text-slate-600 hover:bg-slate-100">
+        <i data-lucide="box" class="w-4 h-4 text-blue-600"></i>
+        <span>Оприходование [F4]</span>
+      </button>
+
+      <button onclick="switchTab('catalog')" id="tab-btn-catalog" class="tab-btn flex items-center gap-2 px-4 py-2.5 rounded-xl transition text-slate-600 hover:bg-slate-100">
+        <i data-lucide="boxes" class="w-4 h-4 text-indigo-600"></i>
+        <span>Номенклатура и остатки</span>
+      </button>
+
+      <button onclick="switchTab('history')" id="tab-btn-history" class="tab-btn flex items-center gap-2 px-4 py-2.5 rounded-xl transition text-slate-600 hover:bg-slate-100">
+        <i data-lucide="history" class="w-4 h-4 text-purple-600"></i>
+        <span>Журнал операций</span>
+      </button>
+
+      <button onclick="switchTab('debts')" id="tab-btn-debts" class="tab-btn flex items-center gap-2 px-4 py-2.5 rounded-xl transition text-slate-600 hover:bg-slate-100">
+        <i data-lucide="users" class="w-4 h-4 text-rose-600"></i>
+        <span>Дебиторы (Долги)</span>
+      </button>
+
+      <button onclick="switchTab('settings')" id="tab-btn-settings" class="tab-btn flex items-center gap-2 px-4 py-2.5 rounded-xl transition text-slate-600 hover:bg-slate-100 ml-auto">
+        <i data-lucide="settings-2" class="w-4 h-4 text-slate-500"></i>
+        <span>Связь и настройки</span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- MAIN CONTENT CONTAINER -->
+  <main class="flex-1 p-6 overflow-y-auto">
+
+    <!-- TAB 1: POS / SALE (СЦЕНАРИЙ А) -->
+    <div id="tab-content-pos" class="tab-pane">
+      <div class="grid grid-cols-12 gap-6 h-full">
+        
+        <!-- Left: Product Search & Grid (7 cols) -->
+        <div class="col-span-12 lg:col-span-7 flex flex-col gap-4">
+          <!-- Search & Barcode Input -->
+          <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center gap-3">
+            <div class="p-2.5 bg-sky-50 rounded-xl text-sky-600">
+              <i data-lucide="scan-barcode" class="w-6 h-6"></i>
+            </div>
+            <div class="flex-1">
+              <input type="text" id="pos-barcode-search" oninput="onSearchInput(this.value)" placeholder="Сканируйте штрихкод или введите SKU / наименование..." class="w-full text-base font-medium px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent">
+            </div>
+            <button onclick="focusSearch()" class="px-3 py-2 bg-slate-100 text-slate-600 rounded-xl text-xs font-semibold hover:bg-slate-200 flex items-center gap-1">
+              <i data-lucide="keyboard" class="w-3.5 h-3.5"></i>
+              <span>Фокус</span>
+            </button>
+          </div>
+
+          <!-- Product Quick Grid -->
+          <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex-1 flex flex-col">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
+              <h2 class="text-sm font-bold text-slate-700 flex items-center gap-2">
+                <span>Каталог медикаментов</span>
+                <span id="pos-product-count" class="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full font-semibold">8 позиций</span>
+              </h2>
+              <span class="text-xs text-slate-400">Нажмите на товар, чтобы добавить в чек</span>
+            </div>
+
+            <!-- Products scroll list -->
+            <div id="pos-product-grid" class="grid grid-cols-2 sm:grid-cols-3 gap-3 overflow-y-auto max-h-[520px] pr-1">
+              <!-- Dynamically populated via JS -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Cart & Payment Checkout (5 cols) -->
+        <div class="col-span-12 lg:col-span-5 flex flex-col gap-4">
+          <div class="bg-white rounded-2xl border border-slate-200 shadow-xs flex flex-col h-full p-5">
+            
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div class="flex items-center gap-2">
+                <div class="p-1.5 bg-sky-100 text-sky-700 rounded-lg">
+                  <i data-lucide="receipt" class="w-5 h-5"></i>
+                </div>
+                <h3 class="font-bold text-slate-800 text-base">Текущий чек продажи</h3>
+              </div>
+              <button onclick="clearCart()" class="text-xs font-semibold text-rose-500 hover:text-rose-700 hover:bg-rose-50 px-2.5 py-1 rounded-lg transition flex items-center gap-1">
+                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                <span>Очистить</span>
+              </button>
+            </div>
+
+            <!-- Cart Items List -->
+            <div id="pos-cart-items" class="flex-1 overflow-y-auto my-3 divide-y divide-slate-100 min-h-[180px] max-h-[260px] pr-1">
+              <div class="text-center py-12 text-slate-400 flex flex-col items-center">
+                <i data-lucide="shopping-bag" class="w-12 h-12 stroke-[1.5] text-slate-300 mb-2"></i>
+                <p class="text-sm">Чек пуст</p>
+                <p class="text-xs text-slate-400">Выберите товар из каталога слева</p>
+              </div>
+            </div>
+
+            <!-- Payment Type Selection (Section 4) -->
+            <div class="border-t border-slate-100 pt-3">
+              <label class="block text-xs font-bold text-slate-600 mb-2 uppercase tracking-wide">Способ оплаты (Таджикистан):</label>
+              <div class="grid grid-cols-3 gap-2 mb-3">
+                
+                <button type="button" onclick="selectPaymentType('CASH')" id="pay-btn-cash" class="pay-selector flex flex-col items-center justify-center p-2.5 rounded-xl border-2 border-sky-500 bg-sky-50 text-sky-800 font-bold text-xs transition">
+                  <i data-lucide="banknote" class="w-4 h-4 mb-1"></i>
+                  <span>Наличные</span>
+                  <span class="text-[9px] font-normal text-slate-500">Касса склада</span>
+                </button>
+
+                <button type="button" onclick="selectPaymentType('BANK_TRANSFER')" id="pay-btn-bank" class="pay-selector flex flex-col items-center justify-center p-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs transition">
+                  <i data-lucide="qr-code" class="w-4 h-4 mb-1"></i>
+                  <span>Безнал / Банк</span>
+                  <span class="text-[9px] font-normal text-slate-500">DC / Alif / Эсхата</span>
+                </button>
+
+                <button type="button" onclick="selectPaymentType('DEBT')" id="pay-btn-debt" class="pay-selector flex flex-col items-center justify-center p-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs transition">
+                  <i data-lucide="file-clock" class="w-4 h-4 mb-1"></i>
+                  <span>В долг</span>
+                  <span class="text-[9px] font-normal text-slate-500">Под реализацию</span>
+                </button>
+              </div>
+
+              <!-- Sub-fields for Bank Transfer -->
+              <div id="sub-bank-details" class="hidden bg-slate-50 p-3 rounded-xl border border-slate-200 mb-3 space-y-2">
+                <div>
+                  <label class="block text-[11px] font-bold text-slate-600 mb-1">Выберите банк РТ:</label>
+                  <select id="pos-bank-select" class="w-full text-xs font-semibold px-2.5 py-2 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-sky-500">
+                    <option value="Dushanbe City (DC)">Dushanbe City (DC)</option>
+                    <option value="Банк Эсхата">Банк Эсхата</option>
+                    <option value="Алиф Банк / Alif Mobi">Алиф Банк / Alif Mobi</option>
+                    <option value="Амонатбонк / Другой банк">Амонатбонк / Другой банк</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-[11px] font-bold text-slate-600 mb-1">Номер квитанции / транзакции:</label>
+                  <input type="text" id="pos-bank-ref" placeholder="Напр: DC-984021" class="w-full text-xs px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg">
+                </div>
+              </div>
+
+              <!-- Sub-fields for Debt -->
+              <div id="sub-debt-details" class="hidden bg-rose-50 p-3 rounded-xl border border-rose-200 mb-3 space-y-2">
+                <div>
+                  <label class="block text-[11px] font-bold text-rose-800 mb-1">ФИО / Наименование контрагента:</label>
+                  <input type="text" id="pos-debtor-name" placeholder="Напр: Аптека «Шифо» или Доктор Каримов" class="w-full text-xs px-2.5 py-1.5 bg-white border border-rose-300 rounded-lg">
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                  <div>
+                    <label class="block text-[11px] font-bold text-rose-800 mb-1">Телефон:</label>
+                    <input type="tel" id="pos-debtor-phone" placeholder="+992 92 777 4422" class="w-full text-xs px-2.5 py-1.5 bg-white border border-rose-300 rounded-lg">
+                  </div>
+                  <div>
+                    <label class="block text-[11px] font-bold text-rose-800 mb-1">Срок возврата:</label>
+                    <input type="date" id="pos-debtor-date" class="w-full text-xs px-2.5 py-1.5 bg-white border border-rose-300 rounded-lg">
+                  </div>
+                </div>
+              </div>
+
+              <!-- Total Sum & Submit Button -->
+              <div class="bg-slate-900 text-white p-4 rounded-xl space-y-3">
+                <div class="flex justify-between items-baseline">
+                  <span class="text-xs text-slate-300 font-medium">Итого к оплате:</span>
+                  <span class="text-2xl font-black font-mono-numbers text-emerald-400">
+                    <span id="pos-total-amount">0.00</span> <span class="text-sm font-bold text-slate-300">TJS</span>
+                  </span>
+                </div>
+
+                <button onclick="submitSale()" id="btn-submit-sale" class="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 active:scale-98 text-slate-950 font-black text-sm rounded-xl shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-2 transition cursor-pointer">
+                  <i data-lucide="check-circle" class="w-5 h-5"></i>
+                  <span>Оформить продажу (Enter)</span>
+                </button>
+              </div>
+
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- TAB 2: CLINIC WRITE-OFF (СЦЕНАРИЙ Б) -->
+    <div id="tab-content-clinic" class="tab-pane hidden">
+      <div class="max-w-4xl mx-auto bg-white rounded-2xl border border-slate-200 shadow-xs p-6 space-y-6">
+        
+        <!-- Header Banner -->
+        <div class="bg-gradient-to-r from-emerald-500 to-teal-600 text-white p-5 rounded-2xl flex items-start justify-between shadow-md shadow-emerald-600/15">
+          <div class="space-y-1">
+            <div class="flex items-center gap-2">
+              <span class="p-1.5 bg-white/20 rounded-lg"><i data-lucide="hospital" class="w-5 h-5"></i></span>
+              <h2 class="text-lg font-bold">Списание в частную клинику (Сценарий Б)</h2>
+            </div>
+            <p class="text-xs text-emerald-100 max-w-xl">
+              Внутреннее хозяйственное потребление своей клиникой. Физический остаток уменьшается, сумма оплаты строго <strong>0,00 TJS</strong> (не формирует долг и выручку). Фиксируется в истории со статусом <em>«Внутренний расход клиники»</em>.
+            </p>
+          </div>
+          <div class="text-right bg-white/10 px-4 py-2.5 rounded-xl border border-white/20">
+            <div class="text-xs text-emerald-100 uppercase tracking-wider font-semibold">Сумма списания</div>
+            <div class="text-2xl font-black font-mono-numbers">0,00 TJS</div>
+          </div>
+        </div>
+
+        <!-- Clinic Meta Fields -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Отделение / кабинет клиники:</label>
+            <select id="clinic-dept" class="w-full text-xs font-semibold px-3 py-2 bg-white border border-slate-300 rounded-lg">
+              <option value="Процедурный кабинет">Процедурный кабинет (2 этаж)</option>
+              <option value="Стационарное отделение">Стационарное отделение</option>
+              <option value="Хирургический блок">Хирургический блок</option>
+              <option value="Приёмный покой / Травмпункт">Приёмный покой / Травмпункт</option>
+              <option value="Стоматологический кабинет">Стоматологический кабинет</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Получатель (Врач / Старшая медсестра):</label>
+            <input type="text" id="clinic-recipient" placeholder="Напр: Старшая м/с Зарина" class="w-full text-xs px-3 py-2 bg-white border border-slate-300 rounded-lg">
+          </div>
+        </div>
+
+        <!-- Item Selector for Clinic -->
+        <div class="border border-slate-200 rounded-xl p-4">
+          <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3">Медикаменты для передачи в клинику:</h3>
+          
+          <div class="flex gap-3 mb-4">
+            <select id="clinic-prod-select" class="flex-1 text-xs font-semibold px-3 py-2 bg-white border border-slate-300 rounded-lg">
+              <!-- populated dynamically -->
+            </select>
+            <input type="number" id="clinic-prod-qty" value="10" min="1" class="w-24 text-xs font-bold px-3 py-2 bg-white border border-slate-300 rounded-lg text-center" placeholder="Кол-во">
+            <button onclick="addClinicItem()" class="px-4 py-2 bg-slate-800 text-white rounded-lg text-xs font-bold hover:bg-slate-700 flex items-center gap-1.5">
+              <i data-lucide="plus" class="w-4 h-4"></i>
+              <span>Добавить в список</span>
+            </button>
+          </div>
+
+          <!-- Items list -->
+          <div id="clinic-items-list" class="divide-y divide-slate-100 border border-slate-100 rounded-lg min-h-[120px] max-h-[220px] overflow-y-auto">
+            <div class="text-center py-8 text-slate-400 text-xs">Список передачи пока пуст</div>
+          </div>
+        </div>
+
+        <!-- Action Button -->
+        <div class="flex items-center justify-between pt-2">
+          <div class="text-xs text-slate-500">
+            Плановая себестоимость расхода: <span id="clinic-plan-cost" class="font-bold text-slate-800">0.00 TJS</span> (учитывается в ежемесячном отчёте руководителя)
+          </div>
+          <button onclick="submitClinicWriteOff()" class="px-6 py-3.5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold text-sm rounded-xl shadow-md shadow-emerald-600/20 flex items-center gap-2 cursor-pointer transition">
+            <i data-lucide="check" class="w-5 h-5"></i>
+            <span>Провести списание в клинику (0.00 TJS)</span>
+          </button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- TAB 3: RECEIVE (ОПРИХОДОВАНИЕ) -->
+    <div id="tab-content-receive" class="tab-pane hidden">
+      <div class="max-w-4xl mx-auto bg-white rounded-2xl border border-slate-200 shadow-xs p-6 space-y-6">
+        
+        <div class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-5 rounded-2xl flex items-center justify-between shadow-md">
+          <div>
+            <h2 class="text-lg font-bold flex items-center gap-2">
+              <i data-lucide="package-plus" class="w-5 h-5"></i>
+              <span>Оприходование товарных партий</span>
+            </h2>
+            <p class="text-xs text-blue-100">
+              Пополнение складского остатка. Автоматически пересчитывает расчётную стоимость складской партии и общий финансовый баланс склада.
+            </p>
+          </div>
+          <div class="bg-white/10 px-4 py-2 rounded-xl text-right">
+            <span class="text-[10px] text-blue-200 uppercase font-semibold">Пример из ТЗ</span>
+            <div class="text-xs font-bold text-white">10 000 шт × 1 TJS = 10 000 TJS</div>
+          </div>
+        </div>
+
+        <form id="receive-form" onsubmit="submitReceive(event)" class="space-y-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Товар для оприходования:</label>
+              <select id="receive-prod-select" onchange="onReceiveProductChange()" class="w-full text-xs font-semibold px-3 py-2 bg-white border border-slate-300 rounded-lg">
+                <!-- Dynamically populated -->
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Количество поступило (шт/уп/флак):</label>
+              <input type="number" id="receive-qty" value="1000" min="1" oninput="updateReceiveCalculation()" class="w-full text-xs font-bold px-3 py-2 bg-white border border-slate-300 rounded-lg">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Розничная цена за ед. (TJS):</label>
+              <input type="number" step="0.10" id="receive-price" value="1.00" oninput="updateReceiveCalculation()" class="w-full text-xs font-bold px-3 py-2 bg-white border border-slate-300 rounded-lg">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Поставщик / Накладная:</label>
+              <input type="text" id="receive-supplier" placeholder="Напр: ФармДистрибьюшн ООО №491" class="w-full text-xs px-3 py-2 bg-white border border-slate-300 rounded-lg">
+            </div>
+          </div>
+
+          <!-- Highlight Box of Auto Calculation -->
+          <div class="p-4 bg-sky-50 rounded-xl border border-sky-200 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <div class="p-2 bg-sky-600 text-white rounded-lg">
+                <i data-lucide="calculator" class="w-5 h-5"></i>
+              </div>
+              <div>
+                <div class="text-xs font-bold text-sky-900">Плановый прирост баланса партии:</div>
+                <div class="text-[11px] text-sky-700">Расчётное поле: Количество × Розничная стоимость за единицу</div>
+              </div>
+            </div>
+            <div class="text-2xl font-black font-mono-numbers text-sky-950">
+              +<span id="receive-calc-total">1 000.00</span> TJS
+            </div>
+          </div>
+
+          <div class="text-right">
+            <button type="submit" class="px-6 py-3 bg-blue-600 hover:bg-blue-500 active:scale-95 text-white font-bold text-sm rounded-xl shadow-md shadow-blue-600/20 flex items-center gap-2 ml-auto cursor-pointer">
+              <i data-lucide="check-circle" class="w-4 h-4"></i>
+              <span>Зафиксировать приёмку на баланс</span>
+            </button>
+          </div>
+        </form>
+
+      </div>
+    </div>
+
+    <!-- TAB 4: CATALOG & NOMENCLATURE (РАЗДЕЛ 2 ТЗ) -->
+    <div id="tab-content-catalog" class="tab-pane hidden space-y-4">
+      
+      <!-- Top FinTech Banner for Capitalization -->
+      <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-4">
+        <div class="flex items-center gap-4">
+          <div class="p-3 bg-teal-50 text-teal-600 rounded-xl">
+            <i data-lucide="vault" class="w-7 h-7"></i>
+          </div>
+          <div>
+            <div class="text-xs font-bold text-slate-500 uppercase tracking-wider">Капитализация склада (Общая стоимость остатков)</div>
+            <div class="text-3xl font-extrabold font-mono-numbers text-slate-900">
+              <span id="catalog-total-cap">0.00</span> <span class="text-lg font-bold text-teal-600">TJS</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <input type="text" id="catalog-search" oninput="renderCatalog(this.value)" placeholder="Поиск по наименованию, штрихкоду, SKU..." class="text-xs px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl w-64 focus:bg-white focus:outline-none">
+          <button onclick="openAddProductModal()" class="px-4 py-2 bg-slate-900 text-white text-xs font-bold rounded-xl hover:bg-slate-800 flex items-center gap-1.5">
+            <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+            <span>Новая позиция</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Table View of Products -->
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+        <table class="w-full text-left text-xs border-collapse">
+          <thead>
+            <tr class="bg-slate-50 text-slate-600 font-bold border-b border-slate-200">
+              <th class="py-3 px-4">Фото</th>
+              <th class="py-3 px-4">Наименование товара</th>
+              <th class="py-3 px-4">Артикул / SKU</th>
+              <th class="py-3 px-4">Штрихкод</th>
+              <th class="py-3 px-4 text-center">Остаток на балансе</th>
+              <th class="py-3 px-4 text-right">Розничная цена (TJS)</th>
+              <th class="py-3 px-4 text-right font-black text-slate-900">Стоимость партии (TJS)</th>
+            </tr>
+          </thead>
+          <tbody id="catalog-tbody" class="divide-y divide-slate-100">
+            <!-- Dynamically populated -->
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+
+    <!-- TAB 5: HISTORY / TRANSACTIONS -->
+    <div id="tab-content-history" class="tab-pane hidden space-y-4">
+      <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between">
+        <div>
+          <h2 class="text-base font-bold text-slate-900">Журнал операций склада</h2>
+          <p class="text-xs text-slate-500">Все проведённые списания, продажи и оприходования</p>
+        </div>
+        <button onclick="loadOperations()" class="p-2 bg-slate-100 text-slate-600 rounded-xl hover:bg-slate-200">
+          <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+        <table class="w-full text-left text-xs border-collapse">
+          <thead>
+            <tr class="bg-slate-50 text-slate-600 font-bold border-b border-slate-200">
+              <th class="py-3 px-4">Операция</th>
+              <th class="py-3 px-4">Товар / Объём</th>
+              <th class="py-3 px-4">Категория списания</th>
+              <th class="py-3 px-4 text-right">Финансы</th>
+              <th class="py-3 px-4 text-center">Статус синхронизации</th>
+              <th class="py-3 px-4 text-center">Время</th>
+            </tr>
+          </thead>
+          <tbody id="history-tbody" class="divide-y divide-slate-100">
+            <!-- Dynamically populated -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TAB 6: DEBTS REGISTRY -->
+    <div id="tab-content-debts" class="tab-pane hidden space-y-4">
+      <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between">
+        <div>
+          <h2 class="text-base font-bold text-slate-900">Реестр «Дебиторская задолженность» (Кто мне должен)</h2>
+          <p class="text-xs text-slate-500">Товары, отпущенные под реализацию контрагентам и аптекам</p>
+        </div>
+        <div class="text-right">
+          <span class="text-xs text-slate-400">Сумма к взысканию:</span>
+          <div id="debts-total-sum" class="text-xl font-black text-rose-600 font-mono-numbers">0.00 TJS</div>
+        </div>
+      </div>
+
+      <div id="debts-cards-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <!-- Dynamically populated -->
+      </div>
+    </div>
+
+    <!-- TAB 7: SETTINGS & SYNC -->
+    <div id="tab-content-settings" class="tab-pane hidden">
+      <div class="max-w-2xl mx-auto bg-white rounded-2xl border border-slate-200 shadow-xs p-6 space-y-6">
+        <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
+          <i data-lucide="cloud" class="w-5 h-5 text-sky-600"></i>
+          <span>Настройки связи с облачным сервером</span>
+        </h2>
+
+        <div class="space-y-4 text-xs">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Адрес облачного бэкенда (API URL):</label>
+            <input type="text" id="settings-cloud-url" value="http://localhost:4000" class="w-full text-xs font-mono px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg">
+          </div>
+
+          <div class="p-4 bg-slate-50 rounded-xl space-y-2 border border-slate-200">
+            <div class="flex justify-between">
+              <span class="text-slate-500">Идентификатор терминала:</span>
+              <span class="font-bold text-slate-800">desktop-win-terminal-01</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-500">Локальная БД:</span>
+              <span class="font-bold text-slate-800">SQLite (desktop/local_warehouse.db)</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-500">Последняя успешная синхронизация:</span>
+              <span id="settings-last-sync" class="font-bold text-slate-800">Никогда</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-slate-500">Неотправленных локальных чеков:</span>
+              <span id="settings-pending-count" class="font-bold text-amber-600">0</span>
+            </div>
+          </div>
+
+          <div class="flex gap-3">
+            <button onclick="saveSettings()" class="px-4 py-2.5 bg-slate-800 text-white font-bold rounded-xl hover:bg-slate-700">
+              Сохранить настройки
+            </button>
+            <button onclick="triggerSync()" class="px-4 py-2.5 bg-sky-600 text-white font-bold rounded-xl hover:bg-sky-500 flex items-center gap-2">
+              <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+              <span>Запустить полную синхронизацию</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- MODAL: ADD PRODUCT -->
+  <div id="modal-add-product" class="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4 z-50 hidden">
+    <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full p-6 space-y-4">
+      <div class="flex justify-between items-center border-b pb-3">
+        <h3 class="font-bold text-base text-slate-900">Новая товарная позиция на складе</h3>
+        <button onclick="closeAddProductModal()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <form onsubmit="submitNewProduct(event)" class="space-y-3 text-xs">
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Полное торговое наименование:</label>
+          <input type="text" id="new-prod-name" required placeholder="напр. «Шприц 5мл одноразовый с иглой»" class="w-full px-3 py-2 border rounded-lg">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Артикул / SKU:</label>
+            <input type="text" id="new-prod-sku" required placeholder="MED-SHP-005" class="w-full px-3 py-2 border rounded-lg">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Штрихкод:</label>
+            <input type="text" id="new-prod-barcode" required placeholder="4820010050012" class="w-full px-3 py-2 border rounded-lg">
+          </div>
+        </div>
+        <div class="grid grid-cols-3 gap-3">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Категория:</label>
+            <input type="text" id="new-prod-category" value="Расходные материалы" class="w-full px-3 py-2 border rounded-lg">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Ед. изм:</label>
+            <input type="text" id="new-prod-unit" value="шт." class="w-full px-3 py-2 border rounded-lg">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Начальный остаток:</label>
+            <input type="number" id="new-prod-qty" value="1000" class="w-full px-3 py-2 border rounded-lg">
+          </div>
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Розничная цена за ед. (TJS):</label>
+          <input type="number" step="0.1" id="new-prod-price" value="1.00" class="w-full px-3 py-2 border rounded-lg">
+        </div>
+        <div class="flex justify-end gap-2 pt-3 border-t">
+          <button type="button" onclick="closeAddProductModal()" class="px-4 py-2 bg-slate-100 text-slate-700 font-bold rounded-xl">Отмена</button>
+          <button type="submit" class="px-5 py-2 bg-sky-600 text-white font-bold rounded-xl hover:bg-sky-500">Создать позицию</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- PRINT RECEIPT MODAL (PREVIEW) -->
+  <div id="receipt-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 hidden">
+    <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 space-y-4">
+      <div id="receipt-print-area" class="font-mono text-xs text-slate-900 space-y-2 border border-dashed border-slate-300 p-4 bg-amber-50/30 rounded-lg">
+        <div class="text-center pb-2 border-b border-dashed border-slate-300">
+          <div class="font-bold text-sm tracking-wide">«MedStock Pro»</div>
+          <div class="text-[10px] text-slate-500">Медицинский склад & Клиника</div>
+          <div class="text-[10px] text-slate-500">г. Душанбе, Таджикистан</div>
+        </div>
+        <div class="flex justify-between text-[11px] pt-1">
+          <span>Чек <span id="rec-code">#1045</span></span>
+          <span id="rec-date">05.10.2026</span>
+        </div>
+        <div class="flex justify-between text-[11px]">
+          <span>Тип: <span id="rec-type" class="font-bold">Продажа</span></span>
+          <span id="rec-pay">Наличные</span>
+        </div>
+        <div id="rec-client-row" class="text-[11px] hidden">
+          <span>Клиент: <span id="rec-client" class="font-bold"></span></span>
+        </div>
+        <div class="border-t border-b border-dashed border-slate-300 py-2 space-y-1" id="rec-items-list">
+          <!-- items -->
+        </div>
+        <div class="flex justify-between font-bold text-sm pt-1">
+          <span>ИТОГО К ОПЛАТЕ:</span>
+          <span id="rec-total">0.00 TJS</span>
+        </div>
+        <div class="text-center text-[10px] text-slate-500 pt-2 border-t border-dashed border-slate-300">
+          Оператор: Нигина О. • База: Локальная SQLite<br>
+          Ташаккур барои харид!
+        </div>
+      </div>
+      <div class="flex gap-2">
+        <button onclick="window.print()" class="flex-1 py-2.5 bg-slate-900 text-white font-bold text-xs rounded-xl hover:bg-slate-800 flex items-center justify-center gap-1.5">
+          <i data-lucide="printer" class="w-4 h-4"></i>
+          <span>Печать чека</span>
+        </button>
+        <button onclick="closeReceiptModal()" class="px-4 py-2.5 bg-slate-100 text-slate-700 font-bold text-xs rounded-xl hover:bg-slate-200">
+          Закрыть
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT LOGIC -->
+  <script>
+    // State
+    let products = [];
+    let cart = [];
+    let currentPaymentType = 'CASH'; // CASH, BANK_TRANSFER, DEBT
+    let clinicCart = [];
+
+    // Authentication for Desktop (Ассистент)
+    function handleDesktopLogin(e) {
+      e.preventDefault();
+      const u = document.getElementById('auth-username').value.trim();
+      const p = document.getElementById('auth-password').value;
+      const errEl = document.getElementById('auth-error');
+
+      if (u.toLowerCase() === 'asistent' && p === '12345678') {
+        document.getElementById('auth-screen').classList.add('hidden');
+        errEl.classList.add('hidden');
+        document.getElementById('auth-password').value = '';
+        loadProducts();
+        focusSearch();
+      } else {
+        errEl.classList.remove('hidden');
+        errEl.innerText = 'Неверный логин или пароль ассистента! (Требуется: asistent / 12345678)';
+      }
+    }
+
+    function logoutDesktop() {
+      document.getElementById('auth-screen').classList.remove('hidden');
+      document.getElementById('auth-password').value = '';
+      document.getElementById('auth-username').focus();
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+      // Always prompt authentication on every app launch
+      document.getElementById('auth-screen').classList.remove('hidden');
+      document.getElementById('auth-username').focus();
+      checkSyncStatus();
+      setupHotkeys();
+
+      // Poll sync status every 5 seconds
+      setInterval(checkSyncStatus, 5000);
+    });
+
+    function setupHotkeys() {
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'F2') { e.preventDefault(); switchTab('pos'); }
+        if (e.key === 'F3') { e.preventDefault(); switchTab('clinic'); }
+        if (e.key === 'F4') { e.preventDefault(); switchTab('receive'); }
+      });
+    }
+
+    // Switch Tabs
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-pane').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.tab-btn').forEach(el => {
+        el.classList.remove('text-sky-600', 'bg-sky-50', 'font-bold');
+        el.classList.add('text-slate-600');
+      });
+
+      const activeContent = document.getElementById(`tab-content-${tabId}`);
+      if (activeContent) activeContent.classList.remove('hidden');
+
+      const activeBtn = document.getElementById(`tab-btn-${tabId}`);
+      if (activeBtn) {
+        activeBtn.classList.remove('text-slate-600');
+        activeBtn.classList.add('text-sky-600', 'bg-sky-50', 'font-bold');
+      }
+
+      if (tabId === 'catalog') renderCatalog();
+      if (tabId === 'history') loadOperations();
+      if (tabId === 'debts') loadDebts();
+      if (tabId === 'pos') focusSearch();
+      lucide.createIcons();
+    }
+
+    function focusSearch() {
+      const el = document.getElementById('pos-barcode-search');
+      if (el) el.focus();
+    }
+
+    // Fetch products from local SQLite
+    async function loadProducts() {
+      try {
+        const res = await fetch('/api/local/products');
+        const data = await res.json();
+        products = data.products || [];
+        renderPosProducts();
+        populateClinicSelect();
+        populateReceiveSelect();
+        updateCatalogStats(data.totalCapitalization);
+      } catch (err) {
+        console.error('Ошибка загрузки локальных товаров:', err);
+      }
+    }
+
+    // Render POS Catalog grid
+    function renderPosProducts(filtered = null) {
+      const list = filtered || products;
+      const grid = document.getElementById('pos-product-grid');
+      const countEl = document.getElementById('pos-product-count');
+      if (countEl) countEl.innerText = `${list.length} позиций`;
+
+      if (list.length === 0) {
+        grid.innerHTML = `
+          <div class="col-span-3 text-center py-12 px-4 bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center">
+            <div class="p-3 bg-sky-100 text-sky-700 rounded-2xl mb-3">
+              <i data-lucide="package-plus" class="w-8 h-8"></i>
+            </div>
+            <h4 class="font-bold text-sm text-slate-800 mb-1">Склад пуст (База данных чистая)</h4>
+            <p class="text-xs text-slate-500 max-w-xs mb-3">Добавьте первую позицию или оприходуйте партию медикаментов</p>
+            <button onclick="openAddProductModal()" class="px-4 py-2 bg-sky-600 text-white rounded-xl text-xs font-bold hover:bg-sky-500 flex items-center gap-1.5 shadow-sm">
+              <i data-lucide="plus" class="w-4 h-4"></i>
+              <span>+ Добавить первый товар</span>
+            </button>
+          </div>
+        `;
+        lucide.createIcons();
+        return;
+      }
+
+      grid.innerHTML = list.map(p => `
+        <div onclick="addToCart('${p.id}')" class="group bg-white p-3 rounded-xl border border-slate-200 hover:border-sky-400 hover:shadow-md transition cursor-pointer flex flex-col justify-between">
+          <div class="relative mb-2 aspect-square rounded-lg bg-slate-100 overflow-hidden flex items-center justify-center">
+            ${p.photo_url ? `<img src="${p.photo_url}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300">` : `<i data-lucide="pill" class="w-8 h-8 text-slate-300"></i>`}
+            <span class="absolute top-1.5 right-1.5 text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-900/70 text-white backdrop-blur-xs">
+              Остаток: ${p.stock_quantity}
+            </span>
+          </div>
+          <div>
+            <div class="text-[10px] text-slate-400 font-mono">${p.sku}</div>
+            <div class="font-bold text-xs text-slate-800 line-clamp-2 leading-tight">${p.name}</div>
+          </div>
+          <div class="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between">
+            <span class="font-black text-sky-600 font-mono-numbers text-xs">${p.retail_price.toFixed(2)} TJS</span>
+            <span class="p-1 bg-sky-50 text-sky-600 rounded-md group-hover:bg-sky-600 group-hover:text-white transition">
+              <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+            </span>
+          </div>
+        </div>
+      `).join('');
+      lucide.createIcons();
+    }
+
+    // Search filter
+    function onSearchInput(query) {
+      const q = query.toLowerCase().trim();
+      if (!q) {
+        renderPosProducts();
+        return;
+      }
+      // Exact barcode match check (for hardware barcode scanner)
+      const exactMatch = products.find(p => p.barcode === q || p.sku.toLowerCase() === q);
+      if (exactMatch) {
+        addToCart(exactMatch.id);
+        document.getElementById('pos-barcode-search').value = '';
+        return;
+      }
+
+      const filtered = products.filter(p => 
+        p.name.toLowerCase().includes(q) || 
+        p.sku.toLowerCase().includes(q) || 
+        p.barcode.includes(q)
+      );
+      renderPosProducts(filtered);
+    }
+
+    // CART OPERATIONS
+    function addToCart(productId) {
+      const product = products.find(p => p.id === productId);
+      if (!product) return;
+
+      if (product.stock_quantity <= 0) {
+        alert(`Товара «${product.name}» нет в наличии на складе!`);
+        return;
+      }
+
+      const existing = cart.find(c => c.product_id === productId);
+      if (existing) {
+        if (existing.quantity >= product.stock_quantity) {
+          alert(`Нельзя добавить больше чем остаток на складе (${product.stock_quantity} шт.)`);
+          return;
+        }
+        existing.quantity += 1;
+      } else {
+        cart.push({
+          product_id: product.id,
+          product_name: product.name,
+          unit_price: product.retail_price,
+          unit: product.unit,
+          quantity: 1,
+          max_stock: product.stock_quantity
+        });
+      }
+      renderCart();
+    }
+
+    function updateCartQty(productId, delta) {
+      const item = cart.find(c => c.product_id === productId);
+      if (!item) return;
+      item.quantity += delta;
+      if (item.quantity <= 0) {
+        cart = cart.filter(c => c.product_id !== productId);
+      } else if (item.quantity > item.max_stock) {
+        item.quantity = item.max_stock;
+        alert(`Максимальный доступный остаток: ${item.max_stock}`);
+      }
+      renderCart();
+    }
+
+    function clearCart() {
+      cart = [];
+      renderCart();
+    }
+
+    function renderCart() {
+      const cartContainer = document.getElementById('pos-cart-items');
+      const totalAmountEl = document.getElementById('pos-total-amount');
+
+      if (cart.length === 0) {
+        cartContainer.innerHTML = `
+          <div class="text-center py-12 text-slate-400 flex flex-col items-center">
+            <i data-lucide="shopping-bag" class="w-12 h-12 stroke-[1.5] text-slate-300 mb-2"></i>
+            <p class="text-sm">Чек пуст</p>
+            <p class="text-xs text-slate-400">Выберите товар из каталога слева</p>
+          </div>
+        `;
+        totalAmountEl.innerText = '0.00';
+        lucide.createIcons();
+        return;
+      }
+
+      let total = 0;
+      cartContainer.innerHTML = cart.map(item => {
+        const lineTotal = item.quantity * item.unit_price;
+        total += lineTotal;
+        return `
+          <div class="py-2.5 flex items-center justify-between text-xs">
+            <div class="flex-1 pr-2">
+              <div class="font-bold text-slate-800">${item.product_name}</div>
+              <div class="text-[11px] text-slate-500 font-mono">${item.unit_price.toFixed(2)} TJS × ${item.quantity} ${item.unit}</div>
+            </div>
+            <div class="flex items-center gap-2">
+              <div class="flex items-center border border-slate-200 rounded-lg overflow-hidden bg-slate-50">
+                <button onclick="updateCartQty('${item.product_id}', -1)" class="px-2 py-1 text-slate-600 hover:bg-slate-200 font-bold">-</button>
+                <span class="px-2 font-mono-numbers font-bold text-slate-800">${item.quantity}</span>
+                <button onclick="updateCartQty('${item.product_id}', 1)" class="px-2 py-1 text-slate-600 hover:bg-slate-200 font-bold">+</button>
+              </div>
+              <div class="font-bold font-mono-numbers text-slate-900 w-16 text-right">${lineTotal.toFixed(2)}</div>
+              <button onclick="removeFromCart('${item.product_id}')" class="text-slate-300 hover:text-rose-500 p-1">
+                <i data-lucide="x" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      totalAmountEl.innerText = total.toFixed(2);
+      lucide.createIcons();
+    }
+
+    function removeFromCart(productId) {
+      cart = cart.filter(c => c.product_id !== productId);
+      renderCart();
+    }
+
+    // Payment Type Selector
+    function selectPaymentType(type) {
+      currentPaymentType = type;
+      
+      const btnCash = document.getElementById('pay-btn-cash');
+      const btnBank = document.getElementById('pay-btn-bank');
+      const btnDebt = document.getElementById('pay-btn-debt');
+      const subBank = document.getElementById('sub-bank-details');
+      const subDebt = document.getElementById('sub-debt-details');
+
+      // Reset
+      [btnCash, btnBank, btnDebt].forEach(btn => {
+        btn.classList.remove('border-2', 'border-sky-500', 'bg-sky-50', 'text-sky-800', 'border-rose-500', 'bg-rose-50', 'text-rose-800');
+        btn.classList.add('border-slate-200', 'text-slate-700');
+      });
+      subBank.classList.add('hidden');
+      subDebt.classList.add('hidden');
+
+      if (type === 'CASH') {
+        btnCash.classList.add('border-2', 'border-sky-500', 'bg-sky-50', 'text-sky-800');
+      } else if (type === 'BANK_TRANSFER') {
+        btnBank.classList.add('border-2', 'border-sky-500', 'bg-sky-50', 'text-sky-800');
+        subBank.classList.remove('hidden');
+      } else if (type === 'DEBT') {
+        btnDebt.classList.add('border-2', 'border-rose-500', 'bg-rose-50', 'text-rose-800');
+        subDebt.classList.remove('hidden');
+      }
+    }
+
+    // SUBMIT SALE (СЦЕНАРИЙ А)
+    async function submitSale() {
+      if (cart.length === 0) {
+        alert('Чек пуст! Добавьте товары перед оформлением.');
+        return;
+      }
+
+      const body = {
+        type: 'SALE',
+        payment_type: currentPaymentType,
+        items: cart,
+        created_by: 'Нигина (Фармацевт)'
+      };
+
+      if (currentPaymentType === 'BANK_TRANSFER') {
+        body.bank_name = document.getElementById('pos-bank-select').value;
+        body.transaction_reference = document.getElementById('pos-bank-ref').value || `TRX-${Date.now().toString().slice(-6)}`;
+      } else if (currentPaymentType === 'DEBT') {
+        const debtorName = document.getElementById('pos-debtor-name').value.trim();
+        const debtorPhone = document.getElementById('pos-debtor-phone').value.trim();
+        const dueDate = document.getElementById('pos-debtor-date').value;
+
+        if (!debtorName) {
+          alert('Для продажи в долг обязательно укажите ФИО / Название контрагента!');
+          return;
+        }
+        body.counterparty_name = debtorName;
+        body.counterparty_phone = debtorPhone;
+        body.due_date = dueDate;
+      }
+
+      try {
+        const res = await fetch('/api/local/operations', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Ошибка проведения продажи');
+
+        // Show receipt modal
+        showReceipt(data.operation);
+
+        // Reset cart & refresh
+        cart = [];
+        renderCart();
+        loadProducts();
+        checkSyncStatus();
+      } catch (err) {
+        alert('Ошибка: ' + err.message);
+      }
+    }
+
+    // RECEIPT PREVIEW MODAL
+    function showReceipt(op) {
+      document.getElementById('rec-code').innerText = `#${op.operation_code}`;
+      document.getElementById('rec-date').innerText = new Date(op.created_at).toLocaleDateString('ru-RU') + ' ' + new Date(op.created_at).toLocaleTimeString('ru-RU').slice(0, 5);
+      
+      let payName = 'Наличные (Касса)';
+      if (op.payment_type === 'BANK_TRANSFER') payName = `${op.bank_name} (${op.transaction_reference || 'б/н'})`;
+      if (op.payment_type === 'DEBT') payName = `В долг (${op.counterparty_name})`;
+      if (op.type === 'CLINIC_WRITE_OFF') payName = 'Расход клиники (0.00 TJS)';
+
+      document.getElementById('rec-type').innerText = (op.type === 'CLINIC_WRITE_OFF') ? 'Списание' : 'Продажа';
+      document.getElementById('rec-pay').innerText = payName;
+
+      const clientRow = document.getElementById('rec-client-row');
+      if (op.counterparty_name) {
+        clientRow.classList.remove('hidden');
+        document.getElementById('rec-client').innerText = op.counterparty_name;
+      } else {
+        clientRow.classList.add('hidden');
+      }
+
+      const itemsContainer = document.getElementById('rec-items-list');
+      itemsContainer.innerHTML = (op.items || []).map(it => `
+        <div class="flex justify-between">
+          <span class="truncate max-w-[180px]">${it.product_name} x${it.quantity}</span>
+          <span>${it.total_price.toFixed(2)} TJS</span>
+        </div>
+      `).join('');
+
+      document.getElementById('rec-total').innerText = `${op.total_amount.toFixed(2)} TJS`;
+      document.getElementById('receipt-modal').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function closeReceiptModal() {
+      document.getElementById('receipt-modal').classList.add('hidden');
+    }
+
+    // CLINIC WRITE OFF (СЦЕНАРИЙ Б)
+    function populateClinicSelect() {
+      const select = document.getElementById('clinic-prod-select');
+      if (!select) return;
+      select.innerHTML = products.map(p => `
+        <option value="${p.id}">${p.name} (Остаток: ${p.stock_quantity} ${p.unit})</option>
+      `).join('');
+    }
+
+    function addClinicItem() {
+      const select = document.getElementById('clinic-prod-select');
+      const qtyInput = document.getElementById('clinic-prod-qty');
+      const prodId = select.value;
+      const qty = parseInt(qtyInput.value) || 1;
+
+      const prod = products.find(p => p.id === prodId);
+      if (!prod) return;
+
+      if (qty > prod.stock_quantity) {
+        alert(`Нельзя списать больше чем есть на балансе (${prod.stock_quantity} ${prod.unit})`);
+        return;
+      }
+
+      clinicCart.push({
+        product_id: prod.id,
+        product_name: prod.name,
+        quantity: qty,
+        unit_price: prod.retail_price,
+        unit: prod.unit
+      });
+
+      renderClinicCart();
+    }
+
+    function renderClinicCart() {
+      const listEl = document.getElementById('clinic-items-list');
+      const costEl = document.getElementById('clinic-plan-cost');
+
+      if (clinicCart.length === 0) {
+        listEl.innerHTML = '<div class="text-center py-8 text-slate-400 text-xs">Список передачи пока пуст</div>';
+        costEl.innerText = '0.00 TJS';
+        return;
+      }
+
+      let totalPlanCost = 0;
+      listEl.innerHTML = clinicCart.map((it, idx) => {
+        const itemCost = it.quantity * it.unit_price;
+        totalPlanCost += itemCost;
+        return `
+          <div class="p-2.5 flex items-center justify-between text-xs">
+            <div>
+              <span class="font-bold text-slate-800">${it.product_name}</span>
+              <span class="text-slate-500 font-mono ml-2">${it.quantity} ${it.unit}</span>
+            </div>
+            <div class="flex items-center gap-3">
+              <span class="text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded text-[10px]">Внутр. расход (0.00 TJS)</span>
+              <button onclick="clinicCart.splice(${idx}, 1); renderClinicCart();" class="text-rose-500 hover:text-rose-700">
+                <i data-lucide="trash" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      costEl.innerText = `${totalPlanCost.toFixed(2)} TJS`;
+      lucide.createIcons();
+    }
+
+    async function submitClinicWriteOff() {
+      if (clinicCart.length === 0) {
+        alert('Добавьте хотя бы один медикамент для списания в клинику!');
+        return;
+      }
+
+      const dept = document.getElementById('clinic-dept').value;
+      const recipient = document.getElementById('clinic-recipient').value;
+
+      const body = {
+        type: 'CLINIC_WRITE_OFF',
+        payment_type: 'NONE',
+        counterparty_name: `${dept} (${recipient || 'Клиника'})`,
+        notes: `Списание в частную клинику. Отделение: ${dept}. Получатель: ${recipient || 'Дежурный персонал'}`,
+        created_by: 'Оператор склада',
+        items: clinicCart
+      };
+
+      try {
+        const res = await fetch('/api/local/operations', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+
+        showReceipt(data.operation);
+        clinicCart = [];
+        renderClinicCart();
+        loadProducts();
+        checkSyncStatus();
+      } catch (err) {
+        alert('Ошибка списания в клинику: ' + err.message);
+      }
+    }
+
+    // RECEIVING
+    function populateReceiveSelect() {
+      const select = document.getElementById('receive-prod-select');
+      if (!select) return;
+      select.innerHTML = products.map(p => `
+        <option value="${p.id}" data-price="${p.retail_price}">${p.name} (Текущий остаток: ${p.stock_quantity})</option>
+      `).join('');
+      onReceiveProductChange();
+    }
+
+    function onReceiveProductChange() {
+      const select = document.getElementById('receive-prod-select');
+      const opt = select.options[select.selectedIndex];
+      if (opt) {
+        const price = opt.getAttribute('data-price');
+        document.getElementById('receive-price').value = price || '1.00';
+      }
+      updateReceiveCalculation();
+    }
+
+    function updateReceiveCalculation() {
+      const qty = parseFloat(document.getElementById('receive-qty').value) || 0;
+      const price = parseFloat(document.getElementById('receive-price').value) || 0;
+      const total = qty * price;
+      document.getElementById('receive-calc-total').innerText = total.toLocaleString('ru-RU', { minimumFractionDigits: 2 });
+    }
+
+    async function submitReceive(e) {
+      e.preventDefault();
+      const prodId = document.getElementById('receive-prod-select').value;
+      const qty = parseInt(document.getElementById('receive-qty').value);
+      const price = parseFloat(document.getElementById('receive-price').value);
+      const supplier = document.getElementById('receive-supplier').value;
+
+      const prod = products.find(p => p.id === prodId);
+      if (!prod) return;
+
+      const body = {
+        type: 'RECEIVE',
+        payment_type: 'NONE',
+        notes: `Оприходование партии от поставщика: ${supplier || 'Прямая поставка'}`,
+        items: [{
+          product_id: prod.id,
+          product_name: prod.name,
+          quantity: qty,
+          unit_price: price
+        }]
+      };
+
+      try {
+        const res = await fetch('/api/local/operations', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+
+        alert(`Успешно оприходовано ${qty} шт. товара «${prod.name}»! Баланс обновлен.`);
+        loadProducts();
+        checkSyncStatus();
+      } catch (err) {
+        alert('Ошибка оприходования: ' + err.message);
+      }
+    }
+
+    // CATALOG VIEW
+    function renderCatalog(filterQuery = '') {
+      const q = (filterQuery || '').toLowerCase().trim();
+      const filtered = q ? products.filter(p => p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q) || p.barcode.includes(q)) : products;
+
+      const tbody = document.getElementById('catalog-tbody');
+      tbody.innerHTML = filtered.map(p => `
+        <tr class="hover:bg-slate-50 transition">
+          <td class="py-3 px-4">
+            <div class="w-10 h-10 rounded-lg bg-slate-100 overflow-hidden flex items-center justify-center border border-slate-200">
+              ${p.photo_url ? `<img src="${p.photo_url}" class="w-full h-full object-cover">` : `<i data-lucide="pill" class="w-5 h-5 text-slate-300"></i>`}
+            </div>
+          </td>
+          <td class="py-3 px-4 font-bold text-slate-800">${p.name}</td>
+          <td class="py-3 px-4 font-mono text-slate-500">${p.sku}</td>
+          <td class="py-3 px-4 font-mono text-slate-600">${p.barcode}</td>
+          <td class="py-3 px-4 text-center font-black font-mono-numbers text-slate-800 bg-slate-50/50">${p.stock_quantity} ${p.unit}</td>
+          <td class="py-3 px-4 text-right font-bold font-mono-numbers text-slate-700">${p.retail_price.toFixed(2)}</td>
+          <td class="py-3 px-4 text-right font-black font-mono-numbers text-teal-700 bg-teal-50/40">${p.batch_value.toFixed(2)} TJS</td>
+        </tr>
+      `).join('');
+      lucide.createIcons();
+    }
+
+    function updateCatalogStats(totalCap) {
+      const capEl = document.getElementById('catalog-total-cap');
+      if (capEl) capEl.innerText = (totalCap || 0).toLocaleString('ru-RU', { minimumFractionDigits: 2 });
+    }
+
+    function openAddProductModal() {
+      document.getElementById('modal-add-product').classList.remove('hidden');
+    }
+
+    function closeAddProductModal() {
+      document.getElementById('modal-add-product').classList.add('hidden');
+    }
+
+    async function submitNewProduct(e) {
+      e.preventDefault();
+      const body = {
+        name: document.getElementById('new-prod-name').value,
+        sku: document.getElementById('new-prod-sku').value,
+        barcode: document.getElementById('new-prod-barcode').value,
+        category: document.getElementById('new-prod-category').value,
+        unit: document.getElementById('new-prod-unit').value,
+        stock_quantity: parseInt(document.getElementById('new-prod-qty').value) || 0,
+        retail_price: parseFloat(document.getElementById('new-prod-price').value) || 0
+      };
+
+      try {
+        const res = await fetch('/api/local/products', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+
+        closeAddProductModal();
+        loadProducts();
+        alert('Товар успешно добавлен в локальную базу SQLite!');
+      } catch (err) {
+        alert('Ошибка добавления: ' + err.message);
+      }
+    }
+
+    // HISTORY
+    async function loadOperations() {
+      try {
+        const res = await fetch('/api/local/operations');
+        const data = await res.json();
+        const tbody = document.getElementById('history-tbody');
+        tbody.innerHTML = (data.operations || []).map(op => {
+          let badge = '';
+          let fin = '';
+          if (op.type === 'CLINIC_WRITE_OFF') {
+            badge = '<span class="px-2 py-0.5 rounded font-bold bg-amber-100 text-amber-800">Использование в клинике</span>';
+            fin = '<span class="font-bold text-amber-700">0.00 TJS (Внутр. расход)</span>';
+          } else if (op.payment_type === 'DEBT') {
+            badge = `<span class="px-2 py-0.5 rounded font-bold bg-rose-100 text-rose-800">В долг (${op.counterparty_name || 'Контрагент'})</span>`;
+            fin = `<span class="font-bold text-rose-700">+${op.total_amount.toFixed(2)} TJS (Дебиторка)</span>`;
+          } else if (op.payment_type === 'BANK_TRANSFER') {
+            badge = `<span class="px-2 py-0.5 rounded font-bold bg-blue-100 text-blue-800">Продажа (${op.bank_name})</span>`;
+            fin = `<span class="font-bold text-emerald-700">+${op.total_amount.toFixed(2)} TJS (Оплачено)</span>`;
+          } else {
+            badge = '<span class="px-2 py-0.5 rounded font-bold bg-emerald-100 text-emerald-800">Продажа (Касса склада)</span>';
+            fin = `<span class="font-bold text-emerald-700">+${op.total_amount.toFixed(2)} TJS (Оплачено)</span>`;
+          }
+
+          const syncBadge = op.sync_pending === 1 
+            ? '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">Ожидает синхр.</span>'
+            : '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">Синхронизировано</span>';
+
+          const itemsText = (op.items || []).map(it => `${it.product_name} (${it.quantity} шт.)`).join(', ') || 'Товары';
+
+          return `
+            <tr class="hover:bg-slate-50">
+              <td class="py-3 px-4 font-mono font-bold text-slate-800">Списание #${op.operation_code}</td>
+              <td class="py-3 px-4 text-slate-700 font-medium">${itemsText}</td>
+              <td class="py-3 px-4">${badge}</td>
+              <td class="py-3 px-4 text-right font-mono-numbers">${fin}</td>
+              <td class="py-3 px-4 text-center">${syncBadge}</td>
+              <td class="py-3 px-4 text-center text-slate-400 font-mono text-[11px]">${new Date(op.created_at).toLocaleTimeString('ru-RU').slice(0, 5)}</td>
+            </tr>
+          `;
+        }).join('');
+      } catch (err) {
+        console.error('Ошибка загрузки истории:', err);
+      }
+    }
+
+    // DEBTS
+    async function loadDebts() {
+      try {
+        const res = await fetch('/api/local/debts');
+        const data = await res.json();
+        const debts = data.debts || [];
+
+        let total = 0;
+        const grid = document.getElementById('debts-cards-grid');
+        grid.innerHTML = debts.map(d => {
+          total += d.remaining_amount;
+          return `
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex flex-col justify-between space-y-3">
+              <div class="flex justify-between items-start">
+                <div>
+                  <h4 class="font-bold text-sm text-slate-800">${d.debtor_name}</h4>
+                  <div class="text-xs text-slate-500 font-mono">${d.phone || 'Телефон не указан'}</div>
+                </div>
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold ${d.status === 'PAID' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}">
+                  ${d.status === 'PAID' ? 'Погашен' : 'Активный долг'}
+                </span>
+              </div>
+              <div class="text-xs text-slate-600 bg-slate-50 p-2.5 rounded-lg">
+                <span class="text-slate-400">Товары:</span> ${d.items_summary || 'Партия медикаментов'}
+              </div>
+              <div class="flex justify-between items-baseline pt-2 border-t border-slate-100">
+                <span class="text-xs text-slate-500">Остаток долга:</span>
+                <span class="text-lg font-black font-mono-numbers text-rose-600">${d.remaining_amount.toFixed(2)} TJS</span>
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        document.getElementById('debts-total-sum').innerText = `${total.toFixed(2)} TJS`;
+      } catch (err) {
+        console.error('Ошибка загрузки долгов:', err);
+      }
+    }
+
+    // SYNC LOGIC
+    async function checkSyncStatus() {
+      try {
+        const res = await fetch('/api/local/sync-status');
+        const data = await res.json();
+        const pendingBadge = document.getElementById('pending-badge-container');
+        const pendingText = document.getElementById('pending-count-text');
+        const connPill = document.getElementById('connection-pill');
+        const connText = document.getElementById('connection-text');
+
+        if (data.pendingCount > 0) {
+          pendingBadge.classList.remove('hidden');
+          pendingText.innerText = `${data.pendingCount} чеков офлайн`;
+        } else {
+          pendingBadge.classList.add('hidden');
+        }
+
+        const settingsPending = document.getElementById('settings-pending-count');
+        const settingsLastSync = document.getElementById('settings-last-sync');
+        if (settingsPending) settingsPending.innerText = data.pendingCount;
+        if (settingsLastSync) settingsLastSync.innerText = data.lastSync === 'Никогда' ? 'Никогда' : new Date(data.lastSync).toLocaleString('ru-RU');
+
+      } catch (err) {
+        console.error('Связь с локальным демоном потеряна');
+      }
+    }
+
+    async function triggerSync() {
+      const syncBtn = document.getElementById('btn-sync');
+      const syncIcon = document.getElementById('sync-icon');
+      syncIcon.classList.add('animate-spin');
+
+      try {
+        const res = await fetch('/api/local/sync', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) });
+        const data = await res.json();
+
+        if (data.success) {
+          alert(`Синхронизация завершена успешно!\nОтправлено локальных чеков: ${data.pushedOperations}\nОбновлено товаров: ${data.pulledProducts}`);
+          checkSyncStatus();
+          loadProducts();
+          if (!document.getElementById('tab-content-history').classList.contains('hidden')) loadOperations();
+        } else {
+          alert('Внимание: Облачный сервер недоступен. Работа продолжается в автономном офлайн-режиме.');
+        }
+      } catch (err) {
+        alert('Ошибка при попытке синхронизации: ' + err.message);
+      } finally {
+        syncIcon.classList.remove('animate-spin');
+      }
+    }
+
+    function saveSettings() {
+      const cloudUrl = document.getElementById('settings-cloud-url').value;
+      fetch('/api/local/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cloudUrl })
+      }).then(() => alert('Настройки сохранены!'));
+    }
+  </script>
+</body>
+</html>

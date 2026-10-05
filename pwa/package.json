@@ -1,0 +1,14 @@
+{
+  "name": "medstock-pwa",
+  "version": "1.0.0",
+  "description": "Мобильный PWA-кабинет руководителя MedStock Pro",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "cors": "^2.8.5"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "name": "medstock-backend",
+  "version": "1.0.0",
+  "description": "MedStock Pro Cloud Backend & Sync Gateway",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node src/index.js",
+    "seed": "node src/seed.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.117.2",
+    "better-sqlite3": "^11.8.1",
+    "cors": "^2.8.5",
+    "dotenv": "^18.0.5",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.23.1"
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "short_name": "MedStock",
+  "name": "MedStock Pro — Кабинет владельца",
+  "description": "Мобильный PWA-кабинет руководителя медицинского склада и клиники",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any"
+    },
+    {
+      "src": "/icon.svg",
+      "type": "image/svg+xml",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/icon.svg",
+      "type": "image/svg+xml",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#F8FAFC",
+  "theme_color": "#0D9488",
+  "display": "standalone",
+  "orientation": "portrait"
+}

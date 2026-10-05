@@ -1,0 +1,19 @@
+{
+  "name": "medstock-desktop",
+  "version": "1.0.0",
+  "description": "Рабочее место склада (Windows PC) MedStock Pro",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "serve": "node server.js",
+    "dev": "electron ."
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.8.1",
+    "cors": "^2.8.5",
+    "express": "^4.21.2"
+  },
+  "devDependencies": {
+    "electron": "^40.8.0"
+  }
+}

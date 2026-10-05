@@ -1,0 +1,27 @@
+{
+  "name": "medstock-pro-monorepo",
+  "version": "1.0.0",
+  "description": "Система учёта медицинского склада и списаний MedStock Pro",
+  "private": true,
+  "workspaces": [
+    "server",
+    "desktop",
+    "pwa"
+  ],
+  "scripts": {
+    "server": "npm run start --workspace=server",
+    "desktop": "npm run dev --workspace=desktop",
+    "pwa": "npm run dev --workspace=pwa",
+    "seed": "npm run seed --workspace=server"
+  },
+  "keywords": [
+    "medstock",
+    "warehouse",
+    "medical",
+    "offline-first",
+    "pwa",
+    "fintech"
+  ],
+  "author": "MedStock Pro Team",
+  "license": "ISC"
+}

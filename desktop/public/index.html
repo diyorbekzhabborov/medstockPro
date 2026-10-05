@@ -514,10 +514,9 @@
         <table class="w-full text-left text-xs border-collapse">
           <thead>
             <tr class="bg-slate-50 text-slate-600 font-bold border-b border-slate-200">
-              <th class="py-3 px-4">Фото</th>
+              <th class="py-3 px-4">Рисунок</th>
               <th class="py-3 px-4">Наименование товара</th>
-              <th class="py-3 px-4">Артикул / SKU</th>
-              <th class="py-3 px-4">Штрихкод</th>
+              <th class="py-3 px-4">Артикул / Код</th>
               <th class="py-3 px-4 text-center">Остаток на балансе</th>
               <th class="py-3 px-4 text-right">Розничная цена (TJS)</th>
               <th class="py-3 px-4 text-right font-black text-slate-900">Стоимость партии (TJS)</th>
@@ -642,35 +641,76 @@
         </div>
         <div class="grid grid-cols-2 gap-3">
           <div>
-            <label class="block font-bold text-slate-700 mb-1">Артикул / SKU:</label>
-            <input type="text" id="new-prod-sku" required placeholder="MED-SHP-005" class="w-full px-3 py-2 border rounded-lg">
+            <label class="block font-bold text-slate-700 mb-1">Артикул / Код:</label>
+            <input type="text" id="new-prod-sku" placeholder="Автоматически (напр. MED-001)" class="w-full px-3 py-2 border rounded-lg">
           </div>
-          <div>
-            <label class="block font-bold text-slate-700 mb-1">Штрихкод:</label>
-            <input type="text" id="new-prod-barcode" required placeholder="4820010050012" class="w-full px-3 py-2 border rounded-lg">
-          </div>
-        </div>
-        <div class="grid grid-cols-3 gap-3">
           <div>
             <label class="block font-bold text-slate-700 mb-1">Категория:</label>
-            <input type="text" id="new-prod-category" value="Расходные материалы" class="w-full px-3 py-2 border rounded-lg">
+            <select id="new-prod-category" class="w-full px-3 py-2 border rounded-lg bg-white">
+              <option value="Расходные материалы">Расходные материалы</option>
+              <option value="Растворы">Растворы</option>
+              <option value="Антибиотики">Антибиотики</option>
+              <option value="Инъекции / Ампулы">Инъекции / Ампулы</option>
+              <option value="Таблетки">Таблетки</option>
+              <option value="Защитные средства">Защитные средства</option>
+              <option value="Перевязочные">Перевязочные</option>
+            </select>
           </div>
+        </div>
+
+        <!-- Поле для рисунка / фото товара (Обязательно с рисунком) -->
+        <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
+          <label class="block font-bold text-slate-800 text-xs flex items-center justify-between">
+            <span class="flex items-center gap-1.5 text-teal-700">
+              <i data-lucide="image" class="w-4 h-4"></i>
+              <span>Рисунок / Фотография товара:</span>
+            </span>
+            <span class="text-[10px] text-slate-500">Товар должен быть с рисунком</span>
+          </label>
+
+          <div class="flex items-center gap-3">
+            <!-- Превью рисунка -->
+            <div id="new-prod-img-preview" class="w-16 h-16 rounded-xl bg-white border-2 border-dashed border-teal-300 flex items-center justify-center overflow-hidden shrink-0 shadow-xs">
+              <i data-lucide="image-plus" class="w-6 h-6 text-slate-300" id="preview-placeholder-icon"></i>
+              <img id="preview-img-element" class="w-full h-full object-cover hidden">
+            </div>
+
+            <div class="flex-1 space-y-1.5">
+              <!-- Загрузка файла с компьютера -->
+              <input type="file" id="new-prod-file" accept="image/*" onchange="handleProductImageFile(this)" class="block w-full text-xs text-slate-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100 cursor-pointer">
+              <!-- Скрытое поле для готового URL/Base64 -->
+              <input type="hidden" id="new-prod-photo" value="https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=300&auto=format&fit=crop&q=60">
+              <div class="flex items-center gap-1">
+                <span class="text-[10px] text-slate-400">Или выберите готовую иконку:</span>
+                <button type="button" onclick="setPresetImage('syringe')" class="text-[10px] bg-white border border-slate-200 px-1.5 py-0.5 rounded hover:bg-slate-100">Шприц</button>
+                <button type="button" onclick="setPresetImage('infusion')" class="text-[10px] bg-white border border-slate-200 px-1.5 py-0.5 rounded hover:bg-slate-100">Капельница</button>
+                <button type="button" onclick="setPresetImage('solution')" class="text-[10px] bg-white border border-slate-200 px-1.5 py-0.5 rounded hover:bg-slate-100">Флакон</button>
+                <button type="button" onclick="setPresetImage('pills')" class="text-[10px] bg-white border border-slate-200 px-1.5 py-0.5 rounded hover:bg-slate-100">Таблетки</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-3">
           <div>
             <label class="block font-bold text-slate-700 mb-1">Ед. изм:</label>
             <input type="text" id="new-prod-unit" value="шт." class="w-full px-3 py-2 border rounded-lg">
           </div>
           <div>
             <label class="block font-bold text-slate-700 mb-1">Начальный остаток:</label>
-            <input type="number" id="new-prod-qty" value="1000" class="w-full px-3 py-2 border rounded-lg">
+            <input type="number" id="new-prod-qty" value="100" class="w-full px-3 py-2 border rounded-lg">
           </div>
-        </div>
-        <div>
-          <label class="block font-bold text-slate-700 mb-1">Розничная цена за ед. (TJS):</label>
-          <input type="number" step="0.1" id="new-prod-price" value="1.00" class="w-full px-3 py-2 border rounded-lg">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Розничная цена (TJS):</label>
+            <input type="number" step="0.1" id="new-prod-price" value="1.00" class="w-full px-3 py-2 border rounded-lg">
+          </div>
         </div>
         <div class="flex justify-end gap-2 pt-3 border-t">
           <button type="button" onclick="closeAddProductModal()" class="px-4 py-2 bg-slate-100 text-slate-700 font-bold rounded-xl">Отмена</button>
-          <button type="submit" class="px-5 py-2 bg-sky-600 text-white font-bold rounded-xl hover:bg-sky-500">Создать позицию</button>
+          <button type="submit" class="px-5 py-2 bg-teal-600 text-white font-bold rounded-xl hover:bg-teal-500 flex items-center gap-1.5">
+            <i data-lucide="check" class="w-4 h-4"></i>
+            <span>Сохранить товар с рисунком</span>
+          </button>
         </div>
       </form>
     </div>
@@ -683,7 +723,7 @@
         <div class="text-center pb-2 border-b border-dashed border-slate-300">
           <div class="font-bold text-sm tracking-wide">«MedStock Pro»</div>
           <div class="text-[10px] text-slate-500">Медицинский склад & Клиника</div>
-          <div class="text-[10px] text-slate-500">г. Душанбе, Таджикистан</div>
+          <div class="text-[10px] text-slate-500 font-bold">г. Худжанд, Таджикистан</div>
         </div>
         <div class="flex justify-between text-[11px] pt-1">
           <span>Чек <span id="rec-code">#1045</span></span>
@@ -704,7 +744,7 @@
           <span id="rec-total">0.00 TJS</span>
         </div>
         <div class="text-center text-[10px] text-slate-500 pt-2 border-t border-dashed border-slate-300">
-          Оператор: Нигина О. • База: Локальная SQLite<br>
+          Оператор: Абдуллочон Чабборов<br>
           Ташаккур барои харид!
         </div>
       </div>
@@ -1281,25 +1321,61 @@
       }
     }
 
+    // Product Image Helpers
+    function handleProductImageFile(input) {
+      if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const dataUrl = e.target.result;
+          document.getElementById('new-prod-photo').value = dataUrl;
+          const previewImg = document.getElementById('preview-img-element');
+          const previewIcon = document.getElementById('preview-placeholder-icon');
+          if (previewImg) {
+            previewImg.src = dataUrl;
+            previewImg.classList.remove('hidden');
+          }
+          if (previewIcon) previewIcon.classList.add('hidden');
+        };
+        reader.readAsDataURL(input.files[0]);
+      }
+    }
+
+    function setPresetImage(type) {
+      const presets = {
+        syringe: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=300&auto=format&fit=crop&q=60',
+        infusion: 'https://images.unsplash.com/photo-1583947215259-38e31be8751f?w=300&auto=format&fit=crop&q=60',
+        solution: 'https://images.unsplash.com/photo-1584017911766-d451b3d0e843?w=300&auto=format&fit=crop&q=60',
+        pills: 'https://images.unsplash.com/photo-1471864190281-a93a3070b6de?w=300&auto=format&fit=crop&q=60'
+      };
+      const url = presets[type] || presets.syringe;
+      document.getElementById('new-prod-photo').value = url;
+      const previewImg = document.getElementById('preview-img-element');
+      const previewIcon = document.getElementById('preview-placeholder-icon');
+      if (previewImg) {
+        previewImg.src = url;
+        previewImg.classList.remove('hidden');
+      }
+      if (previewIcon) previewIcon.classList.add('hidden');
+    }
+
     // CATALOG VIEW
     function renderCatalog(filterQuery = '') {
       const q = (filterQuery || '').toLowerCase().trim();
-      const filtered = q ? products.filter(p => p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q) || p.barcode.includes(q)) : products;
+      const filtered = q ? products.filter(p => p.name.toLowerCase().includes(q) || (p.sku && p.sku.toLowerCase().includes(q))) : products;
 
       const tbody = document.getElementById('catalog-tbody');
       tbody.innerHTML = filtered.map(p => `
         <tr class="hover:bg-slate-50 transition">
           <td class="py-3 px-4">
-            <div class="w-10 h-10 rounded-lg bg-slate-100 overflow-hidden flex items-center justify-center border border-slate-200">
-              ${p.photo_url ? `<img src="${p.photo_url}" class="w-full h-full object-cover">` : `<i data-lucide="pill" class="w-5 h-5 text-slate-300"></i>`}
+            <div class="w-12 h-12 rounded-xl bg-slate-100 overflow-hidden flex items-center justify-center border border-slate-200 shadow-xs">
+              ${p.photo_url ? `<img src="${p.photo_url}" class="w-full h-full object-cover">` : `<i data-lucide="pill" class="w-6 h-6 text-slate-300"></i>`}
             </div>
           </td>
-          <td class="py-3 px-4 font-bold text-slate-800">${p.name}</td>
-          <td class="py-3 px-4 font-mono text-slate-500">${p.sku}</td>
-          <td class="py-3 px-4 font-mono text-slate-600">${p.barcode}</td>
+          <td class="py-3 px-4 font-bold text-slate-800 text-sm">${p.name}</td>
+          <td class="py-3 px-4 font-mono text-slate-500">${p.sku || 'MED-001'}</td>
           <td class="py-3 px-4 text-center font-black font-mono-numbers text-slate-800 bg-slate-50/50">${p.stock_quantity} ${p.unit}</td>
           <td class="py-3 px-4 text-right font-bold font-mono-numbers text-slate-700">${p.retail_price.toFixed(2)}</td>
-          <td class="py-3 px-4 text-right font-black font-mono-numbers text-teal-700 bg-teal-50/40">${p.batch_value.toFixed(2)} TJS</td>
+          <td class="py-3 px-4 text-right font-black font-mono-numbers text-teal-700 bg-teal-50/40">${(p.batch_value || (p.stock_quantity * p.retail_price)).toFixed(2)} TJS</td>
         </tr>
       `).join('');
       lucide.createIcons();
@@ -1312,6 +1388,7 @@
 
     function openAddProductModal() {
       document.getElementById('modal-add-product').classList.remove('hidden');
+      setPresetImage('syringe');
     }
 
     function closeAddProductModal() {
@@ -1320,14 +1397,20 @@
 
     async function submitNewProduct(e) {
       e.preventDefault();
+      const name = document.getElementById('new-prod-name').value.trim();
+      if (!name) {
+        alert('Введите наименование товара!');
+        return;
+      }
+
       const body = {
-        name: document.getElementById('new-prod-name').value,
-        sku: document.getElementById('new-prod-sku').value,
-        barcode: document.getElementById('new-prod-barcode').value,
+        name: name,
+        sku: document.getElementById('new-prod-sku').value.trim() || ('MED-' + Date.now().toString().slice(-6)),
         category: document.getElementById('new-prod-category').value,
         unit: document.getElementById('new-prod-unit').value,
         stock_quantity: parseInt(document.getElementById('new-prod-qty').value) || 0,
-        retail_price: parseFloat(document.getElementById('new-prod-price').value) || 0
+        retail_price: parseFloat(document.getElementById('new-prod-price').value) || 0,
+        photo_url: document.getElementById('new-prod-photo').value
       };
 
       try {
@@ -1341,7 +1424,7 @@
 
         closeAddProductModal();
         loadProducts();
-        alert('Товар успешно добавлен в локальную базу SQLite!');
+        alert(`Товар «${name}» с рисунком успешно сохранён на складе!`);
       } catch (err) {
         alert('Ошибка добавления: ' + err.message);
       }

@@ -8,7 +8,8 @@ const app = express();
 const PORT = process.env.DESKTOP_PORT || 3000;
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Helper to get config
@@ -54,21 +55,24 @@ app.get('/api/local/products', (req, res) => {
 
 app.post('/api/local/products', (req, res) => {
   const { name, sku, barcode, category, unit, stock_quantity, retail_price, photo_url } = req.body;
-  if (!name || !sku || !barcode) {
-    return res.status(400).json({ error: 'Наименование, SKU и Штрихкод обязательны' });
+  if (!name) {
+    return res.status(400).json({ error: 'Наименование товара обязательно' });
   }
 
   const id = 'prod-loc-' + Date.now();
+  const finalSku = sku || ('MED-' + Date.now().toString().slice(-6));
+  const finalBarcode = barcode || (Date.now().toString());
+
   try {
     db.prepare(`
       INSERT INTO local_products (id, sku, barcode, name, category, unit, stock_quantity, retail_price, photo_url, is_active, updated_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, CURRENT_TIMESTAMP)
     `).run(
       id,
-      sku,
-      barcode,
+      finalSku,
+      finalBarcode,
       name,
-      category || 'Расходные материалы',
+      category || 'Медикаменты',
       unit || 'шт.',
       Number(stock_quantity) || 0,
       Number(retail_price) || 0,

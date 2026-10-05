@@ -1,12 +1,15 @@
 {
-  "name": "medstock-desktop",
+  "name": "medstock-pro",
+  "productName": "MedStock Pro",
   "version": "1.0.0",
-  "description": "Рабочее место склада (Windows PC) MedStock Pro",
+  "description": "Система учёта медицинского склада и списаний MedStock Pro",
+  "author": "MedStock Pro Team",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
     "serve": "node server.js",
-    "dev": "electron ."
+    "dist": "electron-builder --win",
+    "pack": "electron-builder --dir"
   },
   "dependencies": {
     "better-sqlite3": "^11.8.1",
@@ -14,6 +17,27 @@
     "express": "^4.21.2"
   },
   "devDependencies": {
-    "electron": "^40.8.0"
+    "electron": "^40.8.0",
+    "electron-builder": "^26.15.3"
+  },
+  "build": {
+    "appId": "com.medstockpro.app",
+    "productName": "MedStock Pro",
+    "npmRebuild": false,
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "MedStock Pro"
+    }
   }
 }

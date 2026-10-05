@@ -10,8 +10,8 @@ db.pragma('journal_mode = WAL');
 db.exec(`
   CREATE TABLE IF NOT EXISTS local_products (
     id TEXT PRIMARY KEY,
-    sku TEXT UNIQUE NOT NULL,
-    barcode TEXT UNIQUE NOT NULL,
+    sku TEXT,
+    barcode TEXT,
     name TEXT NOT NULL,
     category TEXT NOT NULL,
     unit TEXT NOT NULL,

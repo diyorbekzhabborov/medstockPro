@@ -6,5 +6,8 @@ node_modules/
 .env
 dist/
 build/
+desktop/dist/
+*.exe
+*.blockmap
 .DS_Store
 Thumbs.db

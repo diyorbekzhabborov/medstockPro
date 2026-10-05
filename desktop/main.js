@@ -1,10 +1,42 @@
 const { app, BrowserWindow } = require('electron');
 const path = require('path');
+const { spawn } = require('child_process');
+const http = require('http');
 
-// Ensure local server is running
-require('./server');
+let serverProcess = null;
+let mainWindow = null;
 
-let mainWindow;
+function checkServerReady() {
+  return new Promise((resolve) => {
+    const tryConnect = () => {
+      const req = http.get('http://localhost:3000/api/local/sync-status', (res) => {
+        resolve();
+      });
+      req.on('error', () => {
+        setTimeout(tryConnect, 300);
+      });
+    };
+    tryConnect();
+  });
+}
+
+function startLocalServer() {
+  return new Promise((resolve) => {
+    // Check if already active
+    const testReq = http.get('http://localhost:3000/api/local/sync-status', (res) => {
+      resolve();
+    });
+    testReq.on('error', () => {
+      // Spawn using system Node (ABI compatible with better-sqlite3)
+      serverProcess = spawn('node', [path.join(__dirname, 'server.js')], {
+        cwd: __dirname,
+        stdio: 'inherit',
+        windowsHide: true
+      });
+      checkServerReady().then(resolve);
+    });
+  });
+}
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -21,7 +53,6 @@ function createWindow() {
     autoHideMenuBar: true
   });
 
-  // Load the warehouse application
   mainWindow.loadURL('http://localhost:3000');
 
   mainWindow.on('closed', () => {
@@ -29,7 +60,8 @@ function createWindow() {
   });
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  await startLocalServer();
   createWindow();
 
   app.on('activate', () => {
@@ -42,5 +74,13 @@ app.whenReady().then(() => {
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
+  }
+});
+
+app.on('will-quit', () => {
+  if (serverProcess) {
+    try {
+      serverProcess.kill();
+    } catch (e) {}
   }
 });

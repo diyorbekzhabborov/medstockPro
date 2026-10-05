@@ -1,10 +1,38 @@
-const Database = require('better-sqlite3');
+const { DatabaseSync } = require('node:sqlite');
 const path = require('path');
 const fs = require('fs');
 
-const dbPath = path.join(__dirname, 'local_warehouse.db');
-const db = new Database(dbPath);
-db.pragma('journal_mode = WAL');
+let dbDir = __dirname;
+try {
+  const electron = require('electron');
+  const app = electron.app || (electron.remote && electron.remote.app);
+  if (app) {
+    dbDir = app.getPath('userData');
+  }
+} catch (e) {}
+
+if (!fs.existsSync(dbDir)) {
+  fs.mkdirSync(dbDir, { recursive: true });
+}
+
+const dbPath = path.join(dbDir, 'local_warehouse.db');
+const db = new DatabaseSync(dbPath);
+db.exec('PRAGMA journal_mode = WAL;');
+
+// Helper for transaction matching better-sqlite3 signature
+db.transaction = function(fn) {
+  return function(...args) {
+    db.exec('BEGIN IMMEDIATE;');
+    try {
+      const res = fn(...args);
+      db.exec('COMMIT;');
+      return res;
+    } catch (err) {
+      db.exec('ROLLBACK;');
+      throw err;
+    }
+  };
+};
 
 // Initialize local offline database schema
 db.exec(`
@@ -91,5 +119,4 @@ if (!configCheck) {
 }
 
 // Локальная база данных пуста и готова для ручного ввода товаров оператором
-
 module.exports = db;

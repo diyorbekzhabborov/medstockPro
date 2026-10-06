@@ -4,17 +4,16 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MedStock Pro — Рабочее место склада (Windows PC)</title>
-  <!-- Tailwind CSS & Lucide Icons -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Offline Tailwind CSS & Lucide Icons -->
+  <script src="./js/tailwind.min.js"></script>
+  <script src="./js/lucide.min.js"></script>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap');
     body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Inter", Helvetica, Arial, sans-serif;
       background-color: #F8FAFC;
     }
     .font-mono-numbers {
-      font-family: 'JetBrains Mono', monospace;
+      font-family: "Cascadia Code", "Consolas", "Courier New", monospace;
     }
     /* Custom scrollbar */
     ::-webkit-scrollbar {
@@ -679,7 +678,7 @@
               <!-- Загрузка файла с компьютера -->
               <input type="file" id="new-prod-file" accept="image/*" onchange="handleProductImageFile(this)" class="block w-full text-xs text-slate-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-teal-50 file:text-teal-700 hover:file:bg-teal-100 cursor-pointer">
               <!-- Скрытое поле для готового URL/Base64 -->
-              <input type="hidden" id="new-prod-photo" value="https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=300&auto=format&fit=crop&q=60">
+              <input type="hidden" id="new-prod-photo" value="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='80' height='80' fill='none' stroke='%230d9488' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='m18 2 4 4'/><path d='m17 7 3-3'/><path d='M19 9 8.7 19.3c-.4.4-1 .6-1.7.6H3v-4c0-.7.2-1.3.6-1.7L14 3.9'/><path d='m9 11 4 4'/><path d='m5 19-3 3'/><path d='m14 4 6 6'/></svg>">
               <div class="flex items-center gap-1">
                 <span class="text-[10px] text-slate-400">Или выберите готовую иконку:</span>
                 <button type="button" onclick="setPresetImage('syringe')" class="text-[10px] bg-white border border-slate-200 px-1.5 py-0.5 rounded hover:bg-slate-100">Шприц</button>
@@ -1342,10 +1341,10 @@
 
     function setPresetImage(type) {
       const presets = {
-        syringe: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=300&auto=format&fit=crop&q=60',
-        infusion: 'https://images.unsplash.com/photo-1583947215259-38e31be8751f?w=300&auto=format&fit=crop&q=60',
-        solution: 'https://images.unsplash.com/photo-1584017911766-d451b3d0e843?w=300&auto=format&fit=crop&q=60',
-        pills: 'https://images.unsplash.com/photo-1471864190281-a93a3070b6de?w=300&auto=format&fit=crop&q=60'
+        syringe: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='80' height='80' fill='none' stroke='%230d9488' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='m18 2 4 4'/><path d='m17 7 3-3'/><path d='M19 9 8.7 19.3c-.4.4-1 .6-1.7.6H3v-4c0-.7.2-1.3.6-1.7L14 3.9'/><path d='m9 11 4 4'/><path d='m5 19-3 3'/><path d='m14 4 6 6'/></svg>",
+        infusion: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='80' height='80' fill='none' stroke='%230284c7' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M10 2h4'/><path d='M12 2v4'/><path d='M6 6h12a2 2 0 0 1 2 2v10a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V8a2 2 0 0 1 2-2Z'/><path d='M6 12h12'/><path d='M12 16v4'/></svg>",
+        solution: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='80' height='80' fill='none' stroke='%238b5cf6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M9 3h6'/><path d='M10 3v3h4V3'/><path d='M14 6l3.5 5.5a4 4 0 0 1 .5 2V19a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2v-4.5a4 4 0 0 1 .5-2L10 6'/><path d='M8 14h8'/></svg>",
+        pills: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='80' height='80' fill='none' stroke='%23ec4899' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z'/><path d='m8.5 8.5 7 7'/></svg>"
       };
       const url = presets[type] || presets.syringe;
       document.getElementById('new-prod-photo').value = url;

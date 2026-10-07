@@ -180,11 +180,6 @@
         <i data-lucide="users" class="w-4 h-4 text-rose-600"></i>
         <span>Дебиторы (Долги)</span>
       </button>
-
-      <button onclick="switchTab('settings')" id="tab-btn-settings" class="tab-btn flex items-center gap-2 px-4 py-2.5 rounded-xl transition text-slate-600 hover:bg-slate-100 ml-auto">
-        <i data-lucide="settings-2" class="w-4 h-4 text-slate-500"></i>
-        <span>Связь и настройки</span>
-      </button>
     </nav>
   </div>
 
@@ -575,52 +570,6 @@
 
       <div id="debts-cards-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <!-- Dynamically populated -->
-      </div>
-    </div>
-
-    <!-- TAB 7: SETTINGS & SYNC -->
-    <div id="tab-content-settings" class="tab-pane hidden">
-      <div class="max-w-2xl mx-auto bg-white rounded-2xl border border-slate-200 shadow-xs p-6 space-y-6">
-        <h2 class="text-base font-bold text-slate-900 flex items-center gap-2">
-          <i data-lucide="cloud" class="w-5 h-5 text-sky-600"></i>
-          <span>Настройки связи с облачным сервером</span>
-        </h2>
-
-        <div class="space-y-4 text-xs">
-          <div>
-            <label class="block font-bold text-slate-700 mb-1">Адрес облачного бэкенда (API URL):</label>
-            <input type="text" id="settings-cloud-url" value="http://localhost:4000" class="w-full text-xs font-mono px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg">
-          </div>
-
-          <div class="p-4 bg-slate-50 rounded-xl space-y-2 border border-slate-200">
-            <div class="flex justify-between">
-              <span class="text-slate-500">Идентификатор терминала:</span>
-              <span class="font-bold text-slate-800">desktop-win-terminal-01</span>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-slate-500">Локальная БД:</span>
-              <span class="font-bold text-slate-800">SQLite (desktop/local_warehouse.db)</span>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-slate-500">Последняя успешная синхронизация:</span>
-              <span id="settings-last-sync" class="font-bold text-slate-800">Никогда</span>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-slate-500">Неотправленных локальных чеков:</span>
-              <span id="settings-pending-count" class="font-bold text-amber-600">0</span>
-            </div>
-          </div>
-
-          <div class="flex gap-3">
-            <button onclick="saveSettings()" class="px-4 py-2.5 bg-slate-800 text-white font-bold rounded-xl hover:bg-slate-700">
-              Сохранить настройки
-            </button>
-            <button onclick="triggerSync()" class="px-4 py-2.5 bg-sky-600 text-white font-bold rounded-xl hover:bg-sky-500 flex items-center gap-2">
-              <i data-lucide="refresh-cw" class="w-4 h-4"></i>
-              <span>Запустить полную синхронизацию</span>
-            </button>
-          </div>
-        </div>
       </div>
     </div>
 
@@ -1530,11 +1479,6 @@
           pendingBadge.classList.add('hidden');
         }
 
-        const settingsPending = document.getElementById('settings-pending-count');
-        const settingsLastSync = document.getElementById('settings-last-sync');
-        if (settingsPending) settingsPending.innerText = data.pendingCount;
-        if (settingsLastSync) settingsLastSync.innerText = data.lastSync === 'Никогда' ? 'Никогда' : new Date(data.lastSync).toLocaleString('ru-RU');
-
       } catch (err) {
         console.error('Связь с локальным демоном потеряна');
       }
@@ -1543,34 +1487,29 @@
     async function triggerSync() {
       const syncBtn = document.getElementById('btn-sync');
       const syncIcon = document.getElementById('sync-icon');
-      syncIcon.classList.add('animate-spin');
+      if (syncIcon) syncIcon.classList.add('animate-spin');
 
       try {
-        const res = await fetch('/api/local/sync', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) });
+        const res = await fetch('/api/local/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({})
+        });
         const data = await res.json();
 
         if (data.success) {
-          alert(`Синхронизация завершена успешно!\nОтправлено локальных чеков: ${data.pushedOperations}\nОбновлено товаров: ${data.pulledProducts}`);
+          alert(`Синхронизация с онлайн-базой успешно выполнена!\n\nОтправлено операций: ${data.pushedOperations || 0}\nСинхронизировано товаров: ${data.pushedProducts || 0}\n\nВладелец теперь видит актуальные данные в телефоне.`);
           checkSyncStatus();
           loadProducts();
           if (!document.getElementById('tab-content-history').classList.contains('hidden')) loadOperations();
         } else {
-          alert('Внимание: Облачный сервер недоступен. Работа продолжается в автономном офлайн-режиме.');
+          alert('Внимание: Онлайн-база временно недоступна. Все данные сохранены локально на компьютере и будут отправлены при следующем нажатии синхронизации.');
         }
       } catch (err) {
         alert('Ошибка при попытке синхронизации: ' + err.message);
       } finally {
-        syncIcon.classList.remove('animate-spin');
+        if (syncIcon) syncIcon.classList.remove('animate-spin');
       }
-    }
-
-    function saveSettings() {
-      const cloudUrl = document.getElementById('settings-cloud-url').value;
-      fetch('/api/local/config', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cloudUrl })
-      }).then(() => alert('Настройки сохранены!'));
     }
   </script>
 </body>

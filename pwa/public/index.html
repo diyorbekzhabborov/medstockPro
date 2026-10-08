@@ -681,29 +681,25 @@
     <div class="bg-slate-900 border border-slate-800 rounded-t-3xl sm:rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl">
       <div class="flex justify-between items-start border-b border-slate-800 pb-3">
         <div>
-          <h3 class="font-extrabold text-base text-white">Напоминание о долге</h3>
-          <p class="text-xs text-slate-400" id="share-modal-debtor">Должник</p>
+          <h3 class="font-extrabold text-base text-white">Связаться в мессенджере</h3>
+          <p class="text-xs text-slate-400 mt-0.5" id="share-modal-debtor">Должник</p>
         </div>
         <button onclick="closeShareModal()" class="text-slate-400 hover:text-white p-1">
           <i data-lucide="x" class="w-5 h-5"></i>
         </button>
       </div>
 
-      <div class="space-y-3 text-xs">
-        <div>
-          <label class="block font-bold text-slate-300 mb-1">Текст сообщения:</label>
-          <textarea id="share-modal-text" rows="4" class="w-full p-3 bg-slate-800 border border-slate-700 text-white rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"></textarea>
-        </div>
-
-        <div class="grid grid-cols-2 gap-2 pt-1">
-          <a id="share-btn-wa" href="#" target="_blank" class="py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl flex items-center justify-center gap-1.5 shadow-md active:scale-95 transition">
-            <i data-lucide="message-circle" class="w-4 h-4"></i>
-            <span>WhatsApp</span>
+      <div class="space-y-3 pt-1">
+        <p class="text-xs text-slate-400">Прямой переход в диалог с клиентом:</p>
+        <div class="grid grid-cols-2 gap-3">
+          <a id="share-btn-wa" href="#" target="_blank" class="py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/50 active:scale-95 transition">
+            <i data-lucide="message-circle" class="w-5 h-5"></i>
+            <span class="text-sm">WhatsApp</span>
           </a>
 
-          <a id="share-btn-tg" href="#" target="_blank" class="py-3 bg-sky-600 hover:bg-sky-500 text-white font-bold rounded-xl flex items-center justify-center gap-1.5 shadow-md active:scale-95 transition">
-            <i data-lucide="send" class="w-4 h-4"></i>
-            <span>Telegram</span>
+          <a id="share-btn-tg" href="#" target="_blank" class="py-3.5 bg-sky-600 hover:bg-sky-500 text-white font-bold rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-sky-950/50 active:scale-95 transition">
+            <i data-lucide="send" class="w-5 h-5"></i>
+            <span class="text-sm">Telegram</span>
           </a>
         </div>
       </div>
@@ -1213,9 +1209,12 @@
                 <a href="tel:${d.phone}" class="p-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl" title="Позвонить">
                   <i data-lucide="phone-call" class="w-4 h-4"></i>
                 </a>
-                <button onclick="openShareModal('${d.id}')" class="p-2.5 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 rounded-xl cursor-pointer" title="Напомнить в мессенджере">
+                <a href="https://wa.me/${cleanPhoneNumber(d.phone)}" target="_blank" class="p-2.5 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 rounded-xl" title="Написать в WhatsApp">
+                  <i data-lucide="message-circle" class="w-4 h-4"></i>
+                </a>
+                <a href="https://t.me/+${cleanPhoneNumber(d.phone)}" target="_blank" class="p-2.5 bg-sky-500/15 hover:bg-sky-500/25 text-sky-400 rounded-xl" title="Написать в Telegram">
                   <i data-lucide="send" class="w-4 h-4"></i>
-                </button>
+                </a>
               ` : ''}
 
               ${d.remaining_amount > 0 ? `
@@ -1333,23 +1332,27 @@
       }
     }
 
-    // SHARE REMINDER MODAL
-    async function openShareModal(debtId) {
-      try {
-        const res = await fetch(`/api/debts/${debtId}/reminder-text`);
-        const data = await res.json();
-        const debt = debtsData.find(d => d.id === debtId);
-
-        document.getElementById('share-modal-debtor').innerText = `${debt ? debt.debtor_name : ''} (${data.phone})`;
-        document.getElementById('share-modal-text').value = `${data.textRu}\n\n${data.textTj}`;
-
-        document.getElementById('share-btn-wa').href = data.whatsappUrlRu;
-        document.getElementById('share-btn-tg').href = data.telegramUrlRu;
-
-        document.getElementById('modal-share-reminder').classList.remove('hidden');
-      } catch (err) {
-        alert('Ошибка получения шаблона: ' + err.message);
+    function cleanPhoneNumber(phone) {
+      if (!phone) return '';
+      let cleaned = String(phone).replace(/[^\d]/g, '');
+      if (cleaned.length === 9) {
+        cleaned = '992' + cleaned;
       }
+      return cleaned;
+    }
+
+    // SHARE REMINDER MODAL (WHATSAPP / TELEGRAM)
+    function openShareModal(debtId) {
+      const debt = debtsData.find(d => d.id === debtId);
+      if (!debt) return;
+      const cleanPhone = cleanPhoneNumber(debt.phone);
+
+      document.getElementById('share-modal-debtor').innerText = `${debt.debtor_name} (${debt.phone || 'без номера'})`;
+      document.getElementById('share-btn-wa').href = `https://wa.me/${cleanPhone}`;
+      document.getElementById('share-btn-tg').href = `https://t.me/+${cleanPhone}`;
+
+      document.getElementById('modal-share-reminder').classList.remove('hidden');
+      if (window.lucide) lucide.createIcons();
     }
 
     function closeShareModal() {

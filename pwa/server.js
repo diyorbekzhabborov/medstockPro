@@ -38,7 +38,18 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-app.listen(PORT, '0.0.0.0', () => {
+const http = require('http');
+const server = http.createServer(app);
+
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.log(`[PWA SERVER] Порт ${PORT} уже занят/активен. Сервер работает.`);
+  } else {
+    console.error('[PWA SERVER ERROR]', err);
+  }
+});
+
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`=======================================================`);
   console.log(` MedStock Pro - Мобильный PWA-кабинет руководителя`);
   console.log(` Порт: http://localhost:${PORT}`);

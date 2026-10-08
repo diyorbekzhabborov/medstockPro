@@ -1,47 +1,61 @@
 const { app, BrowserWindow } = require('electron');
 const path = require('path');
 
-// Start internal offline server directly inside the Electron app
-// Built-in node:sqlite means zero external Node runtime required!
-require('./server');
+const gotTheLock = app.requestSingleInstanceLock();
 
-let mainWindow = null;
+if (!gotTheLock) {
+  app.quit();
+} else {
+  // Start internal offline server directly inside the Electron app
+  // Built-in node:sqlite means zero external Node runtime required!
+  require('./server');
 
-function createWindow() {
-  mainWindow = new BrowserWindow({
-    width: 1280,
-    height: 860,
-    minWidth: 1024,
-    minHeight: 720,
-    title: 'MedStock Pro — Рабочее место склада (Windows App)',
-    backgroundColor: '#F8FAFC',
-    webPreferences: {
-      nodeIntegration: false,
-      contextIsolation: true
-    },
-    autoHideMenuBar: true
+  let mainWindow = null;
+
+  app.on('second-instance', () => {
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.focus();
+    }
   });
 
-  // Load the warehouse application
-  mainWindow.loadURL('http://localhost:3000');
+  function createWindow() {
+    mainWindow = new BrowserWindow({
+      width: 1280,
+      height: 860,
+      minWidth: 1024,
+      minHeight: 720,
+      title: 'MedStock Pro — Рабочее место склада (Windows App)',
+      backgroundColor: '#F8FAFC',
+      webPreferences: {
+        nodeIntegration: false,
+        contextIsolation: true
+      },
+      autoHideMenuBar: true
+    });
 
-  mainWindow.on('closed', () => {
-    mainWindow = null;
+    // Load the warehouse application
+    mainWindow.loadURL('http://localhost:3000');
+
+    mainWindow.on('closed', () => {
+      mainWindow = null;
+    });
+  }
+
+  app.whenReady().then(() => {
+    createWindow();
+
+    app.on('activate', () => {
+      if (BrowserWindow.getAllWindows().length === 0) {
+        createWindow();
+      }
+    });
+  });
+
+  app.on('window-all-closed', () => {
+    if (process.platform !== 'darwin') {
+      app.quit();
+    }
   });
 }
 
-app.whenReady().then(() => {
-  createWindow();
-
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow();
-    }
-  });
-});
-
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit();
-  }
-});

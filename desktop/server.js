@@ -384,7 +384,17 @@ app.post('/api/local/sync', async (req, res) => {
   }
 });
 
-app.listen(PORT, '0.0.0.0', () => {
+const server = http.createServer(app);
+
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.log(`[DESKTOP SERVER] Порт ${PORT} уже занят/активен. Используем существующий процесс.`);
+  } else {
+    console.error('[DESKTOP SERVER ERROR]', err);
+  }
+});
+
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`=======================================================`);
   console.log(` MedStock Pro - Рабочее место склада (Windows Desktop)`);
   console.log(` Локальный терминал: http://localhost:${PORT}`);

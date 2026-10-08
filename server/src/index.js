@@ -53,7 +53,18 @@ app.get('/', (req, res) => {
   });
 });
 
-app.listen(PORT, '0.0.0.0', () => {
+const http = require('http');
+const server = http.createServer(app);
+
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.log(`[CLOUD API SERVER] Порт ${PORT} уже занят/активен. Сервер работает.`);
+  } else {
+    console.error('[CLOUD API SERVER ERROR]', err);
+  }
+});
+
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`=======================================================`);
   console.log(` MedStock Pro - Облачный сервер API & Синхронизация`);
   console.log(` Порт: http://localhost:${PORT}`);

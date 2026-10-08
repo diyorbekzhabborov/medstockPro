@@ -1,4 +1,4 @@
-const Database = require('better-sqlite3');
+const { DatabaseSync } = require('node:sqlite');
 const path = require('path');
 const fs = require('fs');
 
@@ -8,8 +8,31 @@ if (!fs.existsSync(dbDir)) {
   fs.mkdirSync(dbDir, { recursive: true });
 }
 
-const db = new Database(dbPath);
-db.pragma('journal_mode = WAL');
+const db = new DatabaseSync(dbPath);
+db.exec('PRAGMA journal_mode = WAL;');
+
+// Helper for transaction matching better-sqlite3 signature
+db.transaction = function(fn) {
+  return function(...args) {
+    db.exec('BEGIN IMMEDIATE;');
+    try {
+      const res = fn(...args);
+      db.exec('COMMIT;');
+      return res;
+    } catch (err) {
+      db.exec('ROLLBACK;');
+      throw err;
+    }
+  };
+};
+
+db.pragma = function(str) {
+  try {
+    return db.exec('PRAGMA ' + str + ';');
+  } catch (e) {
+    return null;
+  }
+};
 
 // Initialize database schema
 db.exec(`

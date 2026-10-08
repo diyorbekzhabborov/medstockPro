@@ -55,13 +55,24 @@ app.get('/api/local/products', (req, res) => {
 
 app.post('/api/local/products', (req, res) => {
   const { name, sku, barcode, category, unit, stock_quantity, retail_price, photo_url } = req.body;
-  if (!name) {
+  if (!name || !name.trim()) {
     return res.status(400).json({ error: 'Наименование товара обязательно' });
   }
 
   const id = 'prod-loc-' + Date.now();
-  const finalSku = sku || ('MED-' + Date.now().toString().slice(-6));
-  const finalBarcode = barcode || (Date.now().toString());
+  let finalSku = (sku || '').trim();
+  if (!finalSku) {
+    finalSku = 'MED-' + Date.now().toString().slice(-6);
+  } else {
+    const existingSku = db.prepare('SELECT id, name FROM local_products WHERE sku = ? AND is_active = 1').get(finalSku);
+    if (existingSku) {
+      return res.status(400).json({
+        error: `Товар с артикулом «${finalSku}» уже существует на складе («${existingSku.name}»). Укажите другой артикул или оставьте поле пустым.`
+      });
+    }
+  }
+
+  const finalBarcode = (barcode || '').trim() || Date.now().toString();
 
   try {
     db.prepare(`
@@ -71,7 +82,7 @@ app.post('/api/local/products', (req, res) => {
       id,
       finalSku,
       finalBarcode,
-      name,
+      name.trim(),
       category || 'Медикаменты',
       unit || 'шт.',
       Number(stock_quantity) || 0,
@@ -83,7 +94,7 @@ app.post('/api/local/products', (req, res) => {
     created.batch_value = Number((created.stock_quantity * created.retail_price).toFixed(2));
     res.status(201).json({ product: created });
   } catch (err) {
-    res.status(400).json({ error: 'Ошибка добавления товара: ' + err.message });
+    res.status(400).json({ error: 'Ошибка сохранения в базу данных: ' + err.message });
   }
 });
 

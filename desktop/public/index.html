@@ -1272,19 +1272,47 @@
     // Product Image Helpers
     function handleProductImageFile(input) {
       if (input.files && input.files[0]) {
+        const file = input.files[0];
         const reader = new FileReader();
         reader.onload = function(e) {
-          const dataUrl = e.target.result;
-          document.getElementById('new-prod-photo').value = dataUrl;
-          const previewImg = document.getElementById('preview-img-element');
-          const previewIcon = document.getElementById('preview-placeholder-icon');
-          if (previewImg) {
-            previewImg.src = dataUrl;
-            previewImg.classList.remove('hidden');
-          }
-          if (previewIcon) previewIcon.classList.add('hidden');
+          const img = new Image();
+          img.onload = function() {
+            try {
+              const canvas = document.createElement('canvas');
+              let w = img.width;
+              let h = img.height;
+              const maxDim = 500;
+              if (w > maxDim || h > maxDim) {
+                if (w > h) {
+                  h = Math.round((h * maxDim) / w);
+                  w = maxDim;
+                } else {
+                  w = Math.round((w * maxDim) / h);
+                  h = maxDim;
+                }
+              }
+              canvas.width = w;
+              canvas.height = h;
+              const ctx = canvas.getContext('2d');
+              ctx.drawImage(img, 0, 0, w, h);
+              const optimizedDataUrl = canvas.toDataURL('image/jpeg', 0.82);
+
+              document.getElementById('new-prod-photo').value = optimizedDataUrl;
+              const previewImg = document.getElementById('preview-img-element');
+              const previewIcon = document.getElementById('preview-placeholder-icon');
+              if (previewImg) {
+                previewImg.src = optimizedDataUrl;
+                previewImg.classList.remove('hidden');
+              }
+              if (previewIcon) previewIcon.classList.add('hidden');
+            } catch (err) {
+              // Fallback to raw data url if canvas has issue
+              document.getElementById('new-prod-photo').value = e.target.result;
+            }
+          };
+          img.src = e.target.result;
         };
-        reader.readAsDataURL(input.files[0]);
+        reader.readAsDataURL(file);
       }
     }
 
@@ -1351,15 +1379,25 @@
         return;
       }
 
+      const rawPrice = (document.getElementById('new-prod-price').value || '').replace(',', '.').trim();
+      const price = parseFloat(rawPrice) || 0;
+
       const body = {
         name: name,
         sku: document.getElementById('new-prod-sku').value.trim() || ('MED-' + Date.now().toString().slice(-6)),
         category: document.getElementById('new-prod-category').value,
         unit: document.getElementById('new-prod-unit').value,
         stock_quantity: parseInt(document.getElementById('new-prod-qty').value) || 0,
-        retail_price: parseFloat(document.getElementById('new-prod-price').value) || 0,
+        retail_price: price,
         photo_url: document.getElementById('new-prod-photo').value
       };
+
+      const submitBtn = e.target.querySelector('button[type="submit"]');
+      const origText = submitBtn ? submitBtn.innerText : '';
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerText = 'Сохранение...';
+      }
 
       try {
         const res = await fetch('/api/local/products', {
@@ -1368,13 +1406,22 @@
           body: JSON.stringify(body)
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error);
+        if (!res.ok) throw new Error(data.error || 'Ошибка при сохранении товара');
 
         closeAddProductModal();
         loadProducts();
         alert(`Товар «${name}» с рисунком успешно сохранён на складе!`);
       } catch (err) {
-        alert('Ошибка добавления: ' + err.message);
+        if (err.message && err.message.includes('Failed to fetch')) {
+          alert('Служба базы данных склада недоступна. Пожалуйста, перезапустите приложение через start-all.bat');
+        } else {
+          alert('Ошибка добавления: ' + err.message);
+        }
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerText = origText;
+        }
       }
     }
 

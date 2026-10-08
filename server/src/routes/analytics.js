@@ -147,23 +147,28 @@ router.get('/dashboard', (req, res) => {
     };
   });
 
-  res.json({
-    kpis: {
-      capitalization,
-      totalDebts,
-      clinicExpenseMonth,
-      revenueToday: {
-        total: Number(revenueToday.total.toFixed(2)),
-        cash: Number(revenueToday.cash.toFixed(2)),
-        cashless: Number(revenueToday.cashless.toFixed(2)),
-        banks: revenueToday.banks
-      },
-      productsCount: capRow.total_items_count || 0,
-      totalUnits: capRow.total_units_count || 0,
-      activeDebtorsCount: debtRow.active_debtors_count || 0,
-      clinicOperationsCount: clinicRow.clinic_operations_count || 0
+  const kpiData = {
+    capitalization,
+    totalDebts,
+    clinicExpenseMonth,
+    revenueToday: {
+      total: Number(revenueToday.total.toFixed(2)),
+      cash: Number(revenueToday.cash.toFixed(2)),
+      cashless: Number(revenueToday.cashless.toFixed(2)),
+      banks: revenueToday.banks
     },
-    transactions: formattedTransactions
+    productsCount: capRow.total_items_count || 0,
+    totalItemsCount: capRow.total_items_count || 0,
+    totalUnits: capRow.total_units_count || 0,
+    activeDebtorsCount: debtRow.active_debtors_count || 0,
+    clinicOperationsCount: clinicRow.clinic_operations_count || 0
+  };
+
+  res.json({
+    kpis: kpiData,
+    kpi: kpiData,
+    transactions: formattedTransactions,
+    recentTransactions: formattedTransactions
   });
 });
 

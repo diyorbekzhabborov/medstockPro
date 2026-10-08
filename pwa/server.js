@@ -10,26 +10,41 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Forward API requests to Cloud Backend
+// Forward API requests to Cloud Backend with fallback to Desktop Server (port 3000)
 app.use('/api', async (req, res) => {
-  const targetUrl = `${CLOUD_API_URL}/api${req.url}`;
-  try {
-    const fetchOptions = {
-      method: req.method,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': req.headers.authorization || ''
-      }
-    };
-    if (['POST', 'PUT', 'PATCH'].includes(req.method)) {
-      fetchOptions.body = JSON.stringify(req.body);
+  const fetchOptions = {
+    method: req.method,
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': req.headers.authorization || ''
     }
+  };
+  if (['POST', 'PUT', 'PATCH'].includes(req.method)) {
+    fetchOptions.body = JSON.stringify(req.body);
+  }
 
-    const apiRes = await fetch(targetUrl, fetchOptions);
-    const data = await apiRes.json();
-    res.status(apiRes.status).json(data);
-  } catch (err) {
-    res.status(502).json({ error: 'Облачный сервер недоступен: ' + err.message });
+  // 1. Try primary Cloud API (port 4000)
+  try {
+    const apiRes = await fetch(`${CLOUD_API_URL}/api${req.url}`, {
+      ...fetchOptions,
+      signal: AbortSignal.timeout(1500)
+    });
+    if (apiRes.ok) {
+      const data = await apiRes.json();
+      return res.status(apiRes.status).json(data);
+    }
+  } catch (e) {}
+
+  // 2. Automatic fallback to Desktop Warehouse Server (port 3000)
+  try {
+    const fallbackRes = await fetch(`http://localhost:3000/api${req.url}`, {
+      ...fetchOptions,
+      signal: AbortSignal.timeout(2500)
+    });
+    const fallbackData = await fallbackRes.json();
+    return res.status(fallbackRes.status).json(fallbackData);
+  } catch (fallbackErr) {
+    res.status(502).json({ error: 'Сервер склада недоступен. Проверьте запуск MedStock Pro: ' + fallbackErr.message });
   }
 });
 

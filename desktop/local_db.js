@@ -2,7 +2,7 @@ const { DatabaseSync } = require('node:sqlite');
 const path = require('path');
 const fs = require('fs');
 
-let dbDir = __dirname;
+let dbDir = process.env.APPDATA ? path.join(process.env.APPDATA, 'MedStock Pro') : __dirname;
 try {
   const electron = require('electron');
   const app = electron.app || (electron.remote && electron.remote.app);

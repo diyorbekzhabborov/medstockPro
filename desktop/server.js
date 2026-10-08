@@ -268,23 +268,46 @@ app.post('/api/local/sync', async (req, res) => {
   const clientId = getConfig('client_id', 'desktop-win-terminal-01');
 
   try {
-    // 1. Collect pending local operations
-    const pendingOps = db.prepare('SELECT * FROM local_operations WHERE sync_pending = 1').all();
+    // 1. Collect all local operations and products
+    const allOps = db.prepare('SELECT * FROM local_operations').all();
     const getItems = db.prepare('SELECT * FROM local_operation_items WHERE operation_id = ?');
 
-    const opsWithItems = pendingOps.map(op => ({
+    const opsWithItems = allOps.map(op => ({
       ...op,
       items: getItems.all(op.id)
     }));
 
-    const allLocalProducts = db.prepare('SELECT * FROM local_products').all();
+    const allLocalProducts = db.prepare('SELECT * FROM local_products WHERE is_active = 1').all();
+    const allLocalDebts = db.prepare('SELECT * FROM local_debts').all();
     let pushedCount = 0;
     let syncedSuccessfully = false;
 
-    // 2. Direct Sync to Supabase Online Database via REST PostgREST API
+    // 2. Push to Cloud Gateway (port 4000) if running (instant PWA reflection)
+    try {
+      const pushResp = await fetch(`${CLOUD_GATEWAY_URL}/api/sync/push`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clientId,
+          operations: opsWithItems,
+          products: allLocalProducts,
+          debts: allLocalDebts
+        }),
+        signal: AbortSignal.timeout(3000)
+      });
+      if (pushResp.ok) {
+        const pushData = await pushResp.json();
+        pushedCount = (pushData.syncedIds || []).length;
+        syncedSuccessfully = true;
+      }
+    } catch (gwErr) {
+      console.log('[GATEWAY SYNC NOTE]:', gwErr.message);
+    }
+
+    // 3. Sync to Supabase Online Database via REST PostgREST API
     try {
       if (allLocalProducts.length > 0) {
-        await fetch(`${SUPABASE_URL}/rest/v1/products`, {
+        fetch(`${SUPABASE_URL}/rest/v1/products`, {
           method: 'POST',
           headers: {
             'apikey': SUPABASE_KEY,
@@ -305,12 +328,12 @@ app.post('/api/local/sync', async (req, res) => {
             is_active: p.is_active || 1,
             updated_at: p.updated_at || new Date().toISOString()
           }))),
-          signal: AbortSignal.timeout(6000)
+          signal: AbortSignal.timeout(4000)
         }).catch(e => console.log('[SUPABASE REST products note]:', e.message));
       }
 
       if (opsWithItems.length > 0) {
-        await fetch(`${SUPABASE_URL}/rest/v1/operations`, {
+        fetch(`${SUPABASE_URL}/rest/v1/operations`, {
           method: 'POST',
           headers: {
             'apikey': SUPABASE_KEY,
@@ -336,34 +359,13 @@ app.post('/api/local/sync', async (req, res) => {
             client_id: clientId,
             synced_at: new Date().toISOString()
           }))),
-          signal: AbortSignal.timeout(6000)
+          signal: AbortSignal.timeout(4000)
         }).catch(e => console.log('[SUPABASE REST ops note]:', e.message));
 
         syncedSuccessfully = true;
       }
     } catch (sbErr) {
       console.log('[SUPABASE SYNC NOTE]:', sbErr.message);
-    }
-
-    // 3. Also push to local Cloud Gateway if running (for instant PWA reflection)
-    try {
-      const pushResp = await fetch(`${CLOUD_GATEWAY_URL}/api/sync/push`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          clientId,
-          operations: opsWithItems,
-          products: allLocalProducts
-        }),
-        signal: AbortSignal.timeout(4000)
-      });
-      if (pushResp.ok) {
-        const pushData = await pushResp.json();
-        pushedCount = (pushData.syncedIds || []).length;
-        syncedSuccessfully = true;
-      }
-    } catch (gwErr) {
-      console.log('[GATEWAY SYNC NOTE]:', gwErr.message);
     }
 
     // 4. Mark local operations as synced
@@ -394,6 +396,222 @@ app.post('/api/local/sync', async (req, res) => {
     });
   }
 });
+
+// ==========================================
+// 4. MOBILE PWA COMPATIBILITY APIS
+// ==========================================
+
+// GET /api/analytics/dashboard - for mobile PWA
+app.get('/api/analytics/dashboard', (req, res) => {
+  // 1. Capitalization
+  const capRow = db.prepare(`
+    SELECT SUM(stock_quantity * retail_price) as total_capitalization,
+           COUNT(*) as total_items_count,
+           SUM(stock_quantity) as total_units_count
+    FROM local_products
+    WHERE is_active = 1
+  `).get();
+  const capitalization = Number((capRow.total_capitalization || 0).toFixed(2));
+
+  // 2. Debts
+  const debtRow = db.prepare(`
+    SELECT SUM(remaining_amount) as total_debts,
+           COUNT(*) as active_debtors_count
+    FROM local_debts
+    WHERE status != 'PAID'
+  `).get();
+  const totalDebts = Number((debtRow.total_debts || 0).toFixed(2));
+
+  // 3. Clinic Expense
+  const clinicRow = db.prepare(`
+    SELECT SUM(oi.quantity * oi.unit_price) as total_clinic_expense,
+           COUNT(DISTINCT o.id) as clinic_operations_count
+    FROM local_operations o
+    JOIN local_operation_items oi ON o.id = oi.operation_id
+    WHERE o.type = 'CLINIC_WRITE_OFF'
+      AND o.created_at >= date('now', 'start of month')
+  `).get();
+  const clinicExpenseMonth = Number((clinicRow.total_clinic_expense || 0).toFixed(2));
+
+  // 4. Revenue Today
+  const todayOps = db.prepare(`
+    SELECT payment_type, bank_name, SUM(total_amount) as sum_amount, COUNT(*) as cnt
+    FROM local_operations
+    WHERE type = 'SALE'
+      AND date(created_at) = date('now')
+    GROUP BY payment_type, bank_name
+  `).all();
+
+  let revenueToday = {
+    total: 0,
+    cash: 0,
+    cashless: 0,
+    banks: {
+      'Dushanbe City (DC)': 0,
+      'Банк Эсхата': 0,
+      'Алиф Банк / Alif Mobi': 0,
+      'Амонатбонк / Другой банк': 0
+    }
+  };
+
+  for (const row of todayOps) {
+    const amt = Number(row.sum_amount) || 0;
+    if (row.payment_type === 'CASH') {
+      revenueToday.cash += amt;
+      revenueToday.total += amt;
+    } else if (row.payment_type === 'BANK_TRANSFER') {
+      revenueToday.cashless += amt;
+      revenueToday.total += amt;
+      if (row.bank_name && revenueToday.banks[row.bank_name] !== undefined) {
+        revenueToday.banks[row.bank_name] += amt;
+      } else if (row.bank_name) {
+        revenueToday.banks[row.bank_name] = amt;
+      }
+    }
+  }
+
+  // 5. Recent operations
+  const recentOps = db.prepare(`
+    SELECT o.*,
+      (SELECT GROUP_CONCAT(product_name || ' (' || quantity || ' шт.)', ', ')
+       FROM local_operation_items
+       WHERE operation_id = o.id) as items_summary,
+      (SELECT SUM(quantity) FROM local_operation_items WHERE operation_id = o.id) as total_qty
+    FROM local_operations o
+    ORDER BY o.created_at DESC
+    LIMIT 20
+  `).all();
+
+  const formattedTransactions = recentOps.map(op => {
+    let opPrefix = 'Операция';
+    let categoryBadge = '';
+    let categoryBadgeColor = '';
+    let financeText = '';
+    let financeColor = '';
+
+    if (op.type === 'RECEIVE') {
+      opPrefix = 'Приход';
+      categoryBadge = 'Оприходование на склад';
+      categoryBadgeColor = 'blue';
+      financeText = `+${op.total_amount.toFixed(2)} TJS (Приход)`;
+      financeColor = 'text-blue-600 bg-blue-50';
+    } else if (op.type === 'CLINIC_WRITE_OFF') {
+      opPrefix = 'Списание';
+      categoryBadge = 'Использование в клинике';
+      categoryBadgeColor = 'orange';
+      financeText = '0.00 TJS (Внутр. расход)';
+      financeColor = 'text-amber-600 bg-amber-50';
+    } else if (op.payment_type === 'DEBT') {
+      opPrefix = 'В долг';
+      categoryBadge = `В долг (${op.counterparty_name || 'Контрагент'})`;
+      categoryBadgeColor = 'rose';
+      financeText = `+${op.total_amount.toFixed(2)} TJS (Дебиторка)`;
+      financeColor = 'text-rose-600 bg-rose-50';
+    } else if (op.payment_type === 'BANK_TRANSFER') {
+      opPrefix = 'Безнал';
+      categoryBadge = `Продажа (${op.bank_name || 'Безнал'})`;
+      categoryBadgeColor = 'indigo';
+      financeText = `+${op.total_amount.toFixed(2)} TJS (Оплачено)`;
+      financeColor = 'text-emerald-600 bg-emerald-50';
+    } else {
+      opPrefix = 'Продажа';
+      categoryBadge = 'Продажа (Касса)';
+      categoryBadgeColor = 'emerald';
+      financeText = `+${op.total_amount.toFixed(2)} TJS (Оплачено)`;
+      financeColor = 'text-emerald-600 bg-emerald-50';
+    }
+
+    return {
+      id: op.id,
+      operationCode: `${opPrefix} #${op.operation_code}`,
+      itemsSummary: op.items_summary || 'Товары',
+      categoryBadge,
+      categoryBadgeColor,
+      financeText,
+      financeColor,
+      paymentType: op.payment_type,
+      type: op.type,
+      totalAmount: op.total_amount,
+      createdAt: op.created_at,
+      createdBy: op.created_by
+    };
+  });
+
+  const kpiData = {
+    capitalization,
+    productsCount: capRow.total_items_count || 0,
+    totalItemsCount: capRow.total_items_count || 0,
+    totalUnits: capRow.total_units_count || 0,
+    totalDebts,
+    activeDebtorsCount: debtRow.active_debtors_count || 0,
+    clinicExpenseMonth,
+    clinicOperationsCount: clinicRow.clinic_operations_count || 0,
+    revenueToday
+  };
+
+  res.json({
+    kpis: kpiData,
+    kpi: kpiData,
+    transactions: formattedTransactions,
+    recentTransactions: formattedTransactions,
+    lastSync: getConfig('last_synced_at', 'Только что')
+  });
+});
+
+// GET /api/products - for mobile PWA
+app.get('/api/products', (req, res) => {
+  const { q } = req.query;
+  let query = 'SELECT * FROM local_products WHERE is_active = 1';
+  const params = [];
+  if (q) {
+    query += ' AND (name LIKE ? OR sku LIKE ?)';
+    params.push(`%${q}%`, `%${q}%`);
+  }
+  query += ' ORDER BY name ASC';
+  const products = db.prepare(query).all(...params);
+  res.json({ products, total: products.length });
+});
+
+// GET /api/debts - for mobile PWA
+app.get('/api/debts', (req, res) => {
+  const debts = db.prepare('SELECT * FROM local_debts ORDER BY issue_date DESC').all();
+  res.json({ debts, total: debts.length });
+});
+
+// POST /api/debts/:id/pay
+app.post('/api/debts/:id/pay', (req, res) => {
+  const { amount, paymentMethod = 'CASH', notes = '' } = req.body;
+  const debt = db.prepare('SELECT * FROM local_debts WHERE id = ?').get(req.params.id);
+  if (!debt) return res.status(404).json({ error: 'Долг не найден' });
+
+  const payAmt = Number(amount) || 0;
+  const newRemaining = Math.max(0, debt.remaining_amount - payAmt);
+  const newStatus = newRemaining === 0 ? 'PAID' : 'PARTIALLY_PAID';
+
+  db.prepare(`
+    UPDATE local_debts
+    SET remaining_amount = ?, status = ?, updated_at = CURRENT_TIMESTAMP
+    WHERE id = ?
+  `).run(newRemaining, newStatus, debt.id);
+
+  const updated = db.prepare('SELECT * FROM local_debts WHERE id = ?').get(debt.id);
+  res.json({ success: true, debt: updated });
+});
+
+// GET /api/debts/:id/reminder-text
+app.get('/api/debts/:id/reminder-text', (req, res) => {
+  const debt = db.prepare('SELECT * FROM local_debts WHERE id = ?').get(req.params.id);
+  if (!debt) return res.status(404).json({ error: 'Долг не найден' });
+  const text = `Здравствуйте, ${debt.debtor_name}! Напоминаем о задолженности перед MedStock Pro на сумму ${debt.remaining_amount.toFixed(2)} TJS за медикаменты. Просим произвести оплату. Спасибо!`;
+  res.json({ text, phone: debt.phone });
+});
+
+// Serve PWA statically if folder exists
+const pwaPublicPath = path.join(__dirname, '..', 'pwa', 'public');
+if (require('fs').existsSync(pwaPublicPath)) {
+  app.use('/mobile', express.static(pwaPublicPath));
+  app.get('/pwa', (req, res) => res.redirect('/mobile'));
+}
 
 const server = http.createServer(app);
 

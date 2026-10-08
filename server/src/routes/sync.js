@@ -16,7 +16,7 @@ router.get('/health', (req, res) => {
 
 // POST /api/sync/push - receives offline operations and products from Windows desktop client
 router.post('/push', async (req, res) => {
-  const { clientId = 'desktop-win-01', operations = [], products = [] } = req.body;
+  const { clientId = 'desktop-win-01', operations = [], products = [], debts = [] } = req.body;
 
   // 1. Process products if sent
   if (Array.isArray(products) && products.length > 0) {
@@ -64,11 +64,46 @@ router.post('/push', async (req, res) => {
     }
   }
 
+  // 2. Process debts if sent
+  if (Array.isArray(debts) && debts.length > 0) {
+    const upsertDebt = db.prepare(`
+      INSERT INTO debts (id, operation_id, debtor_name, phone, initial_amount, remaining_amount, issue_date, due_date, status, items_summary, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(id) DO UPDATE SET
+        debtor_name = excluded.debtor_name,
+        phone = excluded.phone,
+        initial_amount = excluded.initial_amount,
+        remaining_amount = excluded.remaining_amount,
+        status = excluded.status,
+        items_summary = excluded.items_summary,
+        updated_at = excluded.updated_at
+    `);
+    const runDebtsUpsert = db.transaction(() => {
+      for (const d of debts) {
+        upsertDebt.run(
+          d.id,
+          d.operation_id || null,
+          d.debtor_name,
+          d.phone || '',
+          d.initial_amount,
+          d.remaining_amount,
+          d.issue_date || new Date().toISOString(),
+          d.due_date || null,
+          d.status || 'ACTIVE',
+          d.items_summary || '',
+          d.updated_at || new Date().toISOString()
+        );
+      }
+    });
+    runDebtsUpsert();
+  }
+
   if (!Array.isArray(operations) || operations.length === 0) {
     return res.json({ success: true, pushedCount: 0, syncedIds: [] });
   }
 
   const syncedIds = [];
+  const hasSyncedProducts = Array.isArray(products) && products.length > 0;
 
   const insertOp = db.prepare(`
     INSERT OR IGNORE INTO operations (
@@ -138,9 +173,11 @@ router.post('/push', async (req, res) => {
           );
           itemsSummaryArr.push(`${it.product_name} (${it.quantity} шт.)`);
 
-          // Stock adjustment
-          const stockDelta = (op.type === 'RECEIVE') ? Number(it.quantity) : -Number(it.quantity);
-          updateProductStock.run(stockDelta, it.product_id);
+          // Stock adjustment only if products were not explicitly passed
+          if (!hasSyncedProducts) {
+            const stockDelta = (op.type === 'RECEIVE') ? Number(it.quantity) : -Number(it.quantity);
+            updateProductStock.run(stockDelta, it.product_id);
+          }
         }
       }
 

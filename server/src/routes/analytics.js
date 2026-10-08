@@ -92,27 +92,38 @@ router.get('/dashboard', (req, res) => {
   `).all();
 
   const formattedTransactions = recentOps.map(op => {
+    let opPrefix = 'Операция';
     let categoryBadge = '';
     let categoryBadgeColor = '';
     let financeText = '';
     let financeColor = '';
 
-    if (op.type === 'CLINIC_WRITE_OFF') {
+    if (op.type === 'RECEIVE') {
+      opPrefix = 'Приход';
+      categoryBadge = 'Оприходование на склад';
+      categoryBadgeColor = 'blue';
+      financeText = `+${op.total_amount.toFixed(2)} TJS (Приход)`;
+      financeColor = 'text-blue-600 bg-blue-50';
+    } else if (op.type === 'CLINIC_WRITE_OFF') {
+      opPrefix = 'Списание';
       categoryBadge = 'Использование в клинике';
       categoryBadgeColor = 'orange';
       financeText = '0.00 TJS (Внутр. расход)';
       financeColor = 'text-amber-600 bg-amber-50';
     } else if (op.payment_type === 'DEBT') {
+      opPrefix = 'В долг';
       categoryBadge = `В долг (${op.counterparty_name || 'Контрагент'})`;
       categoryBadgeColor = 'rose';
       financeText = `+${op.total_amount.toFixed(2)} TJS (Дебиторка)`;
       financeColor = 'text-rose-600 bg-rose-50';
     } else if (op.payment_type === 'BANK_TRANSFER') {
+      opPrefix = 'Безнал';
       categoryBadge = `Продажа (${op.bank_name || 'Безнал'})`;
       categoryBadgeColor = 'indigo';
       financeText = `+${op.total_amount.toFixed(2)} TJS (Оплачено)`;
       financeColor = 'text-emerald-600 bg-emerald-50';
     } else {
+      opPrefix = 'Продажа';
       categoryBadge = 'Продажа (Касса)';
       categoryBadgeColor = 'emerald';
       financeText = `+${op.total_amount.toFixed(2)} TJS (Оплачено)`;
@@ -121,7 +132,7 @@ router.get('/dashboard', (req, res) => {
 
     return {
       id: op.id,
-      operationCode: `Списание #${op.operation_code}`,
+      operationCode: `${opPrefix} #${op.operation_code}`,
       itemsSummary: op.items_summary || 'Товары',
       categoryBadge,
       categoryBadgeColor,

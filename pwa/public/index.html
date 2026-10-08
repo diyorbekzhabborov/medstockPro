@@ -6,7 +6,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="MedStock Pro">
-  <meta name="theme-color" content="#0F172A">
+  <meta name="theme-color" content="#0B1120">
   <link rel="manifest" href="/manifest.json">
   <link rel="icon" type="image/svg+xml" href="/icon.svg">
   <link rel="apple-touch-icon" href="/icon.svg">
@@ -22,12 +22,13 @@
       background-color: #0B1120;
       color: #F8FAFC;
       -webkit-tap-highlight-color: transparent;
+      overscroll-behavior-y: contain;
     }
     .font-mono-numbers {
       font-family: "Cascadia Code", "Consolas", "Courier New", monospace;
     }
     .pb-safe {
-      padding-bottom: env(safe-area-inset-bottom, 20px);
+      padding-bottom: env(safe-area-inset-bottom, 22px);
     }
     .pt-safe {
       padding-top: env(safe-area-inset-top, 14px);
@@ -41,26 +42,49 @@
     }
     /* Fintech Glass & Glow effects */
     .glass-card {
-      background: rgba(30, 41, 59, 0.7);
+      background: rgba(30, 41, 59, 0.72);
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
       border: 1px solid rgba(255, 255, 255, 0.08);
     }
     .master-fintech-card {
       background: linear-gradient(135deg, #064E3B 0%, #065F46 40%, #047857 70%, #0D9488 100%);
-      border: 1px solid rgba(52, 211, 153, 0.3);
-      box-shadow: 0 20px 40px -15px rgba(6, 78, 59, 0.6);
+      border: 1px solid rgba(52, 211, 153, 0.35);
+      box-shadow: 0 20px 40px -15px rgba(6, 78, 59, 0.65);
     }
-    .badge-dc { background: rgba(219, 39, 119, 0.15); color: #F472B6; border: 1px solid rgba(219, 39, 119, 0.3); }
-    .badge-eskhata { background: rgba(37, 99, 235, 0.15); color: #60A5FA; border: 1px solid rgba(37, 99, 235, 0.3); }
-    .badge-alif { background: rgba(5, 150, 105, 0.15); color: #34D399; border: 1px solid rgba(5, 150, 105, 0.3); }
-    .badge-amonat { background: rgba(22, 163, 74, 0.15); color: #4ADE80; border: 1px solid rgba(22, 163, 74, 0.3); }
+    /* Pull to refresh spring animation */
+    #pull-refresh-indicator {
+      transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.2s ease;
+    }
+    /* PIN Dot Active Animation */
+    .pin-dot-active {
+      background-color: #10B981 !important;
+      border-color: #34D399 !important;
+      box-shadow: 0 0 12px rgba(16, 185, 129, 0.7);
+      transform: scale(1.15);
+    }
+    @keyframes pinShake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-8px); }
+      40%, 80% { transform: translateX(8px); }
+    }
+    .pin-shake {
+      animation: pinShake 0.4s ease-in-out;
+    }
   </style>
 </head>
 <body class="min-h-screen text-slate-100 flex flex-col justify-between max-w-md mx-auto bg-[#0B1120] shadow-2xl relative select-none">
 
-  <!-- TOP APP STATUS & PROFILE BAR (FINTECH NEOBANK HEADER) -->
-  <header class="bg-[#0B1120]/90 backdrop-blur-xl border-b border-slate-800/80 sticky top-0 z-40 px-5 pt-safe pb-3.5">
+  <!-- PULL-TO-REFRESH BANK-STYLE FLOATING PILL -->
+  <div id="pull-refresh-indicator" class="fixed top-0 left-0 right-0 max-w-md mx-auto flex items-center justify-center pointer-events-none z-50 transform -translate-y-full pt-safe">
+    <div class="mt-2 bg-slate-800/95 text-emerald-400 border border-slate-700/80 px-4 py-2 rounded-full shadow-2xl flex items-center gap-2 text-xs font-bold backdrop-blur-md">
+      <i id="pull-spinner" data-lucide="refresh-cw" class="w-4 h-4 transition-transform duration-200"></i>
+      <span id="pull-text">Потяните вниз для обновления</span>
+    </div>
+  </div>
+
+  <!-- TOP APP STATUS & PROFILE BAR -->
+  <header class="bg-[#0B1120]/90 backdrop-blur-xl border-b border-slate-800/80 sticky top-0 z-40 px-6 pt-safe pb-3.5">
     <div class="flex items-center justify-between">
       
       <!-- User Profile Badge -->
@@ -98,7 +122,7 @@
   </header>
 
   <!-- NOTIFICATIONS MODAL -->
-  <div id="modal-notifications" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-start justify-center p-4 z-50 hidden pt-20">
+  <div id="modal-notifications" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-start justify-center p-6 z-50 hidden pt-20">
     <div class="glass-card rounded-3xl max-w-sm w-full p-5 space-y-4 shadow-2xl border border-slate-700 animate-fade-in">
       <div class="flex justify-between items-center border-b border-slate-700/60 pb-3">
         <div class="flex items-center gap-2 font-extrabold text-white text-sm">
@@ -106,7 +130,7 @@
           <span>Уведомления руководителя</span>
         </div>
         <button onclick="toggleNotifications()" class="text-slate-400 hover:text-white p-1">
-          <i data-lucide="x" class="w-5 h-5"></i>
+          <i data-lucide="x" class="w-4 h-4"></i>
         </button>
       </div>
       <div class="space-y-2.5 text-xs">
@@ -128,43 +152,64 @@
     </div>
   </div>
 
-  <!-- OWNER AUTHENTICATION OVERLAY (EVERY ENTRANCE) -->
-  <div id="owner-auth-screen" class="fixed inset-0 bg-slate-950/95 backdrop-blur-md flex items-center justify-center p-4 z-50">
-    <div class="bg-slate-900 rounded-3xl shadow-2xl max-w-sm w-full p-8 space-y-6 text-center border border-slate-800">
+  <!-- OWNER PIN-CODE AUTHENTICATION OVERLAY (4-DIGIT CODE: 1223) -->
+  <div id="owner-auth-screen" class="fixed inset-0 bg-slate-950/95 backdrop-blur-md flex items-center justify-center p-6 z-50">
+    <div class="bg-slate-900 rounded-3xl shadow-2xl max-w-sm w-full p-6 text-center border border-slate-800 space-y-5 animate-fade-in">
+      
+      <!-- Crown / Shield Logo -->
       <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 text-slate-950 flex items-center justify-center mx-auto shadow-lg shadow-emerald-500/30">
         <i data-lucide="shield-check" class="w-8 h-8 font-black"></i>
       </div>
+
       <div>
         <h2 class="text-xl font-extrabold text-white">MedStock Pro</h2>
-        <p class="text-xs text-slate-400 mt-1">Финтех кабинет руководителя</p>
-        <span class="inline-block mt-2 text-[11px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-3 py-1 rounded-full uppercase tracking-wider">Владелец: Абдуллочон Чабборов</span>
+        <p class="text-xs text-slate-400 mt-1">Абдуллочон Чабборов • Владелец</p>
+        <p class="text-xs text-emerald-400 font-semibold mt-2">Введите 4-значный код доступа</p>
       </div>
 
-      <div id="owner-auth-error" class="hidden text-xs text-rose-400 bg-rose-950/50 border border-rose-800/50 p-3 rounded-xl font-medium">
-        Неверный логин или пароль владельца!
+      <!-- 4 PIN Indicator Dots -->
+      <div id="pin-dots-container" class="flex justify-center items-center gap-4 py-2">
+        <div id="pin-dot-0" class="w-4 h-4 rounded-full border-2 border-slate-600 bg-transparent transition-all duration-200"></div>
+        <div id="pin-dot-1" class="w-4 h-4 rounded-full border-2 border-slate-600 bg-transparent transition-all duration-200"></div>
+        <div id="pin-dot-2" class="w-4 h-4 rounded-full border-2 border-slate-600 bg-transparent transition-all duration-200"></div>
+        <div id="pin-dot-3" class="w-4 h-4 rounded-full border-2 border-slate-600 bg-transparent transition-all duration-200"></div>
       </div>
 
-      <form onsubmit="handleOwnerLogin(event)" class="space-y-4 text-left">
-        <div>
-          <label class="block text-xs font-bold text-slate-300 mb-1">Логин:</label>
-          <input type="text" id="owner-auth-username" required placeholder="asistent" class="w-full text-sm font-semibold px-4 py-3 bg-slate-800 border border-slate-700 text-white rounded-xl focus:bg-slate-750 focus:outline-none focus:ring-2 focus:ring-emerald-500">
-        </div>
-        <div>
-          <label class="block text-xs font-bold text-slate-300 mb-1">Пароль:</label>
-          <input type="password" id="owner-auth-password" required placeholder="•••••••••" class="w-full text-sm font-semibold px-4 py-3 bg-slate-800 border border-slate-700 text-white rounded-xl focus:bg-slate-750 focus:outline-none focus:ring-2 focus:ring-emerald-500">
-        </div>
-        <button type="submit" class="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 active:scale-95 text-slate-950 font-black text-sm rounded-xl shadow-lg shadow-emerald-500/25 transition cursor-pointer">
-          Войти в кабинет
+      <!-- PIN Error Message -->
+      <div id="pin-error" class="hidden text-xs text-rose-400 bg-rose-950/60 border border-rose-800/60 p-2.5 rounded-xl font-medium">
+        Неверный код доступа! Попробуйте снова.
+      </div>
+
+      <!-- Digital Numpad (1-9, 0, Backspace) -->
+      <div class="grid grid-cols-3 gap-3 pt-1 max-w-[260px] mx-auto">
+        <button type="button" onclick="enterPinDigit('1')" class="h-14 rounded-2xl bg-slate-800/90 hover:bg-slate-700 active:scale-95 text-white text-xl font-bold transition">1</button>
+        <button type="button" onclick="enterPinDigit('2')" class="h-14 rounded-2xl bg-slate-800/90 hover:bg-slate-700 active:scale-95 text-white text-xl font-bold transition">2</button>
+        <button type="button" onclick="enterPinDigit('3')" class="h-14 rounded-2xl bg-slate-800/90 hover:bg-slate-700 active:scale-95 text-white text-xl font-bold transition">3</button>
+        
+        <button type="button" onclick="enterPinDigit('4')" class="h-14 rounded-2xl bg-slate-800/90 hover:bg-slate-700 active:scale-95 text-white text-xl font-bold transition">4</button>
+        <button type="button" onclick="enterPinDigit('5')" class="h-14 rounded-2xl bg-slate-800/90 hover:bg-slate-700 active:scale-95 text-white text-xl font-bold transition">5</button>
+        <button type="button" onclick="enterPinDigit('6')" class="h-14 rounded-2xl bg-slate-800/90 hover:bg-slate-700 active:scale-95 text-white text-xl font-bold transition">6</button>
+        
+        <button type="button" onclick="enterPinDigit('7')" class="h-14 rounded-2xl bg-slate-800/90 hover:bg-slate-700 active:scale-95 text-white text-xl font-bold transition">7</button>
+        <button type="button" onclick="enterPinDigit('8')" class="h-14 rounded-2xl bg-slate-800/90 hover:bg-slate-700 active:scale-95 text-white text-xl font-bold transition">8</button>
+        <button type="button" onclick="enterPinDigit('9')" class="h-14 rounded-2xl bg-slate-800/90 hover:bg-slate-700 active:scale-95 text-white text-xl font-bold transition">9</button>
+        
+        <div class="h-14 flex items-center justify-center"></div>
+        <button type="button" onclick="enterPinDigit('0')" class="h-14 rounded-2xl bg-slate-800/90 hover:bg-slate-700 active:scale-95 text-white text-xl font-bold transition">0</button>
+        <button type="button" onclick="deletePinDigit()" class="h-14 rounded-2xl bg-slate-800/50 hover:bg-slate-700 active:scale-95 text-slate-400 hover:text-white flex items-center justify-center transition">
+          <i data-lucide="delete" class="w-6 h-6"></i>
         </button>
-      </form>
-      <div class="text-[11px] text-slate-500">
-        Вход владельца: <code class="font-bold text-slate-300">asistent</code> / <code class="font-bold text-slate-300">123456781</code>
       </div>
+
+      <div class="text-[11px] text-slate-500 pt-1">
+        Код доступа руководителя: <span class="text-slate-400 font-mono font-bold">1223</span>
+      </div>
+
     </div>
   </div>
 
-  <!-- MAIN SCROLLABLE CONTAINER -->
-  <main class="flex-1 px-4 py-4 space-y-4 overflow-y-auto pb-24">
+  <!-- MAIN SCROLLABLE CONTAINER (CENTERED WITH COMFORTABLE PADDING) -->
+  <main class="flex-1 px-6 py-5 space-y-4 overflow-y-auto pb-24">
 
     <!-- VIEW 1: FINTECH DASHBOARD (ALL NUMBERS INITIALIZED TO 0) -->
     <div id="view-dashboard" class="space-y-4">
@@ -174,7 +219,7 @@
         <!-- Background subtle glow -->
         <div class="absolute -right-10 -bottom-10 w-44 h-44 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
 
-        <div class="relative z-10 space-y-3">
+        <div class="relative z-10 space-y-3.5">
           
           <!-- Card Header -->
           <div class="flex items-center justify-between text-xs">
@@ -189,8 +234,8 @@
           </div>
 
           <!-- Main Amount (Starting at 0.00 TJS) -->
-          <div class="pt-1">
-            <div class="flex items-baseline gap-2">
+          <div class="pt-0.5">
+            <div class="flex items-baseline gap-2.5">
               <span class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center font-bold text-base text-white shrink-0">
                 ₸
               </span>
@@ -201,7 +246,7 @@
             </div>
 
             <!-- Subtitle USD Approx & Warehouse Stock info -->
-            <div class="flex items-center gap-2 text-xs text-emerald-100/80 mt-1 pl-10 font-medium">
+            <div class="flex items-center gap-2 text-xs text-emerald-100/80 mt-1.5 pl-10.5 font-medium">
               <span id="dash-capitalization-usd">(≈ $0.00)</span>
               <span>•</span>
               <span id="dash-products-count">0 позиций на балансе</span>
@@ -232,7 +277,7 @@
       </div>
 
       <!-- 2. TWO FINTECH KPI CARDS: МНЕ ДОЛЖНЫ КЛИЕНТЫ & РАСХОД КЛИНИКИ -->
-      <div class="grid grid-cols-2 gap-3">
+      <div class="grid grid-cols-2 gap-3.5">
         
         <!-- CARD: МНЕ ДОЛЖНЫ КЛИЕНТЫ (ДЕБИТОРЫ) -->
         <div onclick="switchView('debts')" class="glass-card rounded-3xl p-4 flex flex-col justify-between cursor-pointer active:scale-98 transition border border-amber-500/20 hover:border-amber-500/40">
@@ -281,7 +326,7 @@
       </div>
 
       <!-- 3. ДИАГРАММА РАСХОДА КЛИНИКИ (МЕДИКАМЕНТЫ VS РАСХОДНИКИ) -->
-      <div class="glass-card rounded-3xl p-4.5 border border-slate-800">
+      <div class="glass-card rounded-3xl p-5 border border-slate-800">
         <div class="flex items-center justify-between mb-3">
           <div class="flex items-center gap-2">
             <i data-lucide="pie-chart" class="w-4 h-4 text-emerald-400"></i>
@@ -290,17 +335,17 @@
           <span class="text-[10px] text-slate-500 font-mono">0 операций</span>
         </div>
 
-        <div class="flex items-center justify-between">
+        <div class="flex items-center justify-between gap-3">
           <!-- Легенда -->
-          <div class="space-y-2 text-xs">
+          <div class="space-y-2 text-xs flex-1">
             <div class="flex items-center gap-2 font-medium">
-              <span class="w-2.5 h-2.5 rounded-full bg-[#0284C7]"></span>
+              <span class="w-2.5 h-2.5 rounded-full bg-[#0284C7] shrink-0"></span>
               <span class="text-slate-300">Медикаменты:</span>
               <span class="font-bold text-white font-mono-numbers" id="legend-meds-val">0.00 TJS (0%)</span>
             </div>
             <div class="flex items-center gap-2 font-medium">
-              <span class="w-2.5 h-2.5 rounded-full bg-[#14B8A6]"></span>
-              <span class="text-slate-300">Расходные материалы:</span>
+              <span class="w-2.5 h-2.5 rounded-full bg-[#14B8A6] shrink-0"></span>
+              <span class="text-slate-300">Расходники:</span>
               <span class="font-bold text-white font-mono-numbers" id="legend-cons-val">0.00 TJS (0%)</span>
             </div>
             <div class="text-[11px] text-slate-500 pt-1">
@@ -326,7 +371,7 @@
       </div>
 
       <!-- 4. ВЫРУЧКА ЗА СЕГОДНЯ: НАЛИЧНЫЕ VS БАНКИ ТАДЖИКИСТАНА -->
-      <div class="glass-card rounded-3xl p-4.5 border border-slate-800 space-y-3.5">
+      <div class="glass-card rounded-3xl p-5 border border-slate-800 space-y-3.5">
         
         <div class="flex items-center justify-between">
           <div>
@@ -345,7 +390,7 @@
         </div>
 
         <!-- 2 Side-by-side Fintech cards -->
-        <div class="grid grid-cols-2 gap-2.5">
+        <div class="grid grid-cols-2 gap-3">
           
           <!-- Наличные (Касса) -->
           <div class="p-3 bg-slate-800/80 rounded-2xl border border-slate-700/60">
@@ -474,13 +519,14 @@
       <div class="flex items-center justify-between">
         <div>
           <h2 class="text-base font-bold text-white">Журнал операций</h2>
-          <p class="text-xs text-slate-400">Полный реестр продаж и списаний медикаментов</p>
+          <p class="text-xs text-slate-400">Полный реестр поступлений, продаж и списаний медикаментов</p>
         </div>
       </div>
 
       <!-- Filter chips -->
       <div class="flex gap-2 text-xs overflow-x-auto pb-1 no-scrollbar">
         <button onclick="filterFeed('ALL')" id="filter-btn-all" class="filter-chip px-3.5 py-1.5 rounded-full font-bold bg-emerald-500 text-slate-950">Все</button>
+        <button onclick="filterFeed('RECEIVE')" id="filter-btn-receive" class="filter-chip px-3.5 py-1.5 rounded-full font-semibold bg-slate-800 border border-slate-700 text-slate-300">Приход</button>
         <button onclick="filterFeed('SALE')" id="filter-btn-sale" class="filter-chip px-3.5 py-1.5 rounded-full font-semibold bg-slate-800 border border-slate-700 text-slate-300">Продажи</button>
         <button onclick="filterFeed('CLINIC_WRITE_OFF')" id="filter-btn-clinic" class="filter-chip px-3.5 py-1.5 rounded-full font-semibold bg-slate-800 border border-slate-700 text-slate-300">В клинику</button>
         <button onclick="filterFeed('DEBT')" id="filter-btn-debt" class="filter-chip px-3.5 py-1.5 rounded-full font-semibold bg-slate-800 border border-slate-700 text-slate-300">В долг</button>
@@ -548,12 +594,12 @@
         <div>
           <h2 class="text-lg font-black text-white">Абдуллочон Чабборов</h2>
           <p class="text-xs font-semibold text-emerald-400 bg-emerald-500/15 border border-emerald-500/30 inline-block px-3 py-1 rounded-full mt-1">Руководитель / Владелец бизнеса</p>
-          <p class="text-xs text-slate-400 mt-1 font-mono">Логин: asistent</p>
+          <p class="text-xs text-slate-400 mt-1 font-mono">PIN-код: 1223</p>
         </div>
 
         <div class="pt-2 border-t border-slate-800 space-y-2 text-left text-xs">
           <div class="flex justify-between items-center p-3 bg-slate-800/60 rounded-2xl border border-slate-700/50">
-            <span class="text-slate-400 font-medium">Статус облака Supabase:</span>
+            <span class="text-slate-400 font-medium">Статус онлайн-базы Supabase:</span>
             <span class="font-bold text-emerald-400 flex items-center gap-1.5">
               <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Подключено
             </span>
@@ -574,8 +620,8 @@
 
         <div class="pt-2">
           <button onclick="logoutOwner()" class="w-full py-3.5 bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 text-rose-400 font-bold text-xs rounded-2xl transition cursor-pointer flex items-center justify-center gap-2 active:scale-95">
-            <i data-lucide="log-out" class="w-4 h-4"></i>
-            <span>Выйти из кабинета владельца</span>
+            <i data-lucide="lock" class="w-4 h-4"></i>
+            <span>Заблокировать кабинет (Выход)</span>
           </button>
         </div>
       </div>
@@ -584,7 +630,7 @@
   </main>
 
   <!-- REPAY DEBT MODAL -->
-  <div id="modal-pay-debt" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 z-50 hidden">
+  <div id="modal-pay-debt" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-6 z-50 hidden">
     <div class="bg-slate-900 border border-slate-800 rounded-t-3xl sm:rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl">
       <div class="flex justify-between items-start border-b border-slate-800 pb-3">
         <div>
@@ -631,7 +677,7 @@
   </div>
 
   <!-- SHARE REMINDER MODAL (WHATSAPP / TELEGRAM) -->
-  <div id="modal-share-reminder" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 z-50 hidden">
+  <div id="modal-share-reminder" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-6 z-50 hidden">
     <div class="bg-slate-900 border border-slate-800 rounded-t-3xl sm:rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl">
       <div class="flex justify-between items-start border-b border-slate-800 pb-3">
         <div>
@@ -664,8 +710,8 @@
     </div>
   </div>
 
-  <!-- BOTTOM FIXED NAVIGATION BAR (FINTECH NEOBANK TAB BAR) -->
-  <nav class="bg-[#0B1120]/95 backdrop-blur-xl border-t border-slate-800/80 fixed bottom-0 left-0 right-0 max-w-md mx-auto z-40 px-3 py-2 pb-safe shadow-2xl">
+  <!-- BOTTOM FIXED NAVIGATION BAR -->
+  <nav class="bg-[#0B1120]/95 backdrop-blur-xl border-t border-slate-800/80 fixed bottom-0 left-0 right-0 max-w-md mx-auto z-40 px-4 py-2.5 pb-safe shadow-2xl">
     <div class="flex justify-around items-center text-[10px] font-bold">
       
       <!-- Tab 1: Dashboard -->
@@ -709,6 +755,74 @@
     let activeDebtToPay = null;
     let currentFeedFilter = 'ALL';
 
+    // PIN Authentication State (Target PIN: 1223)
+    const TARGET_PIN = '1223';
+    let currentPinInput = '';
+
+    function updatePinDots() {
+      for (let i = 0; i < 4; i++) {
+        const dot = document.getElementById(`pin-dot-${i}`);
+        if (i < currentPinInput.length) {
+          dot.classList.add('pin-dot-active');
+        } else {
+          dot.classList.remove('pin-dot-active');
+        }
+      }
+    }
+
+    function enterPinDigit(digit) {
+      if (currentPinInput.length >= 4) return;
+      currentPinInput += digit;
+      updatePinDots();
+      document.getElementById('pin-error').classList.add('hidden');
+
+      if (currentPinInput.length === 4) {
+        setTimeout(verifyPinCode, 150);
+      }
+    }
+
+    function deletePinDigit() {
+      if (currentPinInput.length > 0) {
+        currentPinInput = currentPinInput.slice(0, -1);
+        updatePinDots();
+      }
+      document.getElementById('pin-error').classList.add('hidden');
+    }
+
+    function verifyPinCode() {
+      if (currentPinInput === TARGET_PIN) {
+        // Success
+        if (navigator.vibrate) navigator.vibrate(20);
+        document.getElementById('owner-auth-screen').classList.add('hidden');
+        document.getElementById('pin-error').classList.add('hidden');
+        currentPinInput = '';
+        updatePinDots();
+
+        fetchDashboardData();
+        fetchDebtsData();
+        fetchProductsData();
+      } else {
+        // Error
+        if (navigator.vibrate) navigator.vibrate([40, 60, 40]);
+        const container = document.getElementById('pin-dots-container');
+        container.classList.add('pin-shake');
+        document.getElementById('pin-error').classList.remove('hidden');
+
+        setTimeout(() => {
+          container.classList.remove('pin-shake');
+          currentPinInput = '';
+          updatePinDots();
+        }, 450);
+      }
+    }
+
+    function logoutOwner() {
+      currentPinInput = '';
+      updatePinDots();
+      document.getElementById('pin-error').classList.add('hidden');
+      document.getElementById('owner-auth-screen').classList.remove('hidden');
+    }
+
     // Format helpers
     function formatTJS(num) {
       return (Number(num) || 0).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -731,33 +845,6 @@
       document.getElementById('bell-dot').classList.add('hidden');
     }
 
-    // Owner Login
-    function handleOwnerLogin(e) {
-      e.preventDefault();
-      const u = document.getElementById('owner-auth-username').value.trim();
-      const p = document.getElementById('owner-auth-password').value;
-      const errEl = document.getElementById('owner-auth-error');
-
-      // Credentials: asistent / 123456781
-      if (u.toLowerCase() === 'asistent' && p === '123456781') {
-        document.getElementById('owner-auth-screen').classList.add('hidden');
-        errEl.classList.add('hidden');
-        document.getElementById('owner-auth-password').value = '';
-        fetchDashboardData();
-        fetchDebtsData();
-        fetchProductsData();
-      } else {
-        errEl.classList.remove('hidden');
-        errEl.innerText = 'Неверный пароль владельца! (Требуется: asistent / 123456781)';
-      }
-    }
-
-    function logoutOwner() {
-      document.getElementById('owner-auth-screen').classList.remove('hidden');
-      document.getElementById('owner-auth-password').value = '';
-      document.getElementById('owner-auth-username').focus();
-    }
-
     document.addEventListener('DOMContentLoaded', () => {
       // Set today's date formatted
       try {
@@ -766,18 +853,88 @@
       } catch(e) {}
 
       lucide.createIcons();
-      // Prompt for login on every entrance
+      // Prompt for PIN on entrance
       document.getElementById('owner-auth-screen').classList.remove('hidden');
-      document.getElementById('owner-auth-username').focus();
-      fetchDashboardData();
-      fetchDebtsData();
-      fetchProductsData();
+
+      // Setup Pull to Refresh gesture
+      setupPullToRefresh();
 
       // Register Service Worker for PWA
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('/sw.js').catch(err => console.log('SW error:', err));
       }
     });
+
+    // PULL-TO-REFRESH IMPLEMENTATION (BANK APPS STYLE)
+    function setupPullToRefresh() {
+      const scrollEl = document.querySelector('main');
+      const indicator = document.getElementById('pull-refresh-indicator');
+      const spinner = document.getElementById('pull-spinner');
+      const text = document.getElementById('pull-text');
+      
+      let startY = 0;
+      let isPulling = false;
+      let currentDistance = 0;
+      const PULL_THRESHOLD = 65;
+
+      scrollEl.addEventListener('touchstart', (e) => {
+        if (scrollEl.scrollTop <= 2) {
+          startY = e.touches[0].clientY;
+          isPulling = true;
+        } else {
+          isPulling = false;
+        }
+      }, { passive: true });
+
+      scrollEl.addEventListener('touchmove', (e) => {
+        if (!isPulling) return;
+        const currentY = e.touches[0].clientY;
+        const delta = currentY - startY;
+
+        if (delta > 0 && scrollEl.scrollTop <= 2) {
+          currentDistance = Math.min(delta * 0.45, 95);
+          indicator.style.transform = `translateY(${currentDistance}px)`;
+
+          if (currentDistance >= PULL_THRESHOLD) {
+            text.innerText = 'Отпустите для обновления';
+            spinner.style.transform = 'rotate(180deg)';
+          } else {
+            text.innerText = 'Потяните вниз для обновления';
+            spinner.style.transform = `rotate(${currentDistance * 3}deg)`;
+          }
+        }
+      }, { passive: true });
+
+      scrollEl.addEventListener('touchend', async () => {
+        if (!isPulling) return;
+        isPulling = false;
+
+        if (currentDistance >= PULL_THRESHOLD) {
+          indicator.style.transform = `translateY(${PULL_THRESHOLD}px)`;
+          text.innerText = 'Обновление данных...';
+          spinner.classList.add('animate-spin');
+          if (navigator.vibrate) navigator.vibrate(25);
+
+          await Promise.all([
+            fetchDashboardData(),
+            fetchDebtsData(),
+            fetchProductsData()
+          ]);
+
+          text.innerText = 'Обновлено!';
+          setTimeout(() => {
+            indicator.style.transform = 'translateY(-100%)';
+            spinner.classList.remove('animate-spin');
+            spinner.style.transform = 'none';
+            text.innerText = 'Потяните вниз для обновления';
+          }, 450);
+        } else {
+          indicator.style.transform = 'translateY(-100%)';
+          spinner.style.transform = 'none';
+        }
+        currentDistance = 0;
+      });
+    }
 
     // View Switching
     function switchView(viewName) {
@@ -850,7 +1007,6 @@
       const clinicTotal = Number(k.clinicExpenseMonth) || 0;
       const donutSeg = document.getElementById('donut-segment');
       if (clinicTotal > 0) {
-        // e.g. 65% meds, 35% consumables
         const medsVal = clinicTotal * 0.65;
         const consVal = clinicTotal * 0.35;
         document.getElementById('legend-meds-val').innerText = `${formatTJS(medsVal)} TJS (65%)`;
@@ -912,6 +1068,7 @@
     function renderFullFeed(list) {
       const container = document.getElementById('transactions-feed-container');
       let filtered = list || [];
+      if (currentFeedFilter === 'RECEIVE') filtered = filtered.filter(t => t.type === 'RECEIVE');
       if (currentFeedFilter === 'SALE') filtered = filtered.filter(t => t.type === 'SALE' && t.paymentType !== 'DEBT');
       if (currentFeedFilter === 'CLINIC_WRITE_OFF') filtered = filtered.filter(t => t.type === 'CLINIC_WRITE_OFF');
       if (currentFeedFilter === 'DEBT') filtered = filtered.filter(t => t.paymentType === 'DEBT');
@@ -935,7 +1092,10 @@
       let icon = 'shopping-bag';
       let iconColor = 'text-emerald-400 bg-emerald-500/15 border border-emerald-500/30';
 
-      if (tx.type === 'CLINIC_WRITE_OFF') {
+      if (tx.type === 'RECEIVE') {
+        icon = 'box';
+        iconColor = 'text-blue-400 bg-blue-500/15 border border-blue-500/30';
+      } else if (tx.type === 'CLINIC_WRITE_OFF') {
         icon = 'hospital';
         iconColor = 'text-teal-400 bg-teal-500/15 border border-teal-500/30';
       } else if (tx.paymentType === 'DEBT') {
@@ -963,7 +1123,7 @@
             </div>
           </div>
           <div class="text-right">
-            <div class="text-xs font-black font-mono-numbers ${tx.type === 'CLINIC_WRITE_OFF' ? 'text-teal-400' : 'text-white'}">
+            <div class="text-xs font-black font-mono-numbers ${tx.type === 'CLINIC_WRITE_OFF' ? 'text-teal-400' : (tx.type === 'RECEIVE' ? 'text-blue-400' : 'text-white')}">
               ${tx.financeText}
             </div>
             <div class="text-[10px] text-slate-500 font-mono mt-0.5">

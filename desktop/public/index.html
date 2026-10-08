@@ -542,7 +542,7 @@
             <tr class="bg-slate-50 text-slate-600 font-bold border-b border-slate-200">
               <th class="py-3 px-4">Операция</th>
               <th class="py-3 px-4">Товар / Объём</th>
-              <th class="py-3 px-4">Категория списания</th>
+              <th class="py-3 px-4">Тип операции / Категория</th>
               <th class="py-3 px-4 text-right">Финансы</th>
               <th class="py-3 px-4 text-center">Статус синхронизации</th>
               <th class="py-3 px-4 text-center">Время</th>
@@ -1385,18 +1385,27 @@
         const data = await res.json();
         const tbody = document.getElementById('history-tbody');
         tbody.innerHTML = (data.operations || []).map(op => {
+          let opPrefix = 'Операция';
           let badge = '';
           let fin = '';
-          if (op.type === 'CLINIC_WRITE_OFF') {
+          if (op.type === 'RECEIVE') {
+            opPrefix = 'Приход';
+            badge = '<span class="px-2 py-0.5 rounded font-bold bg-blue-100 text-blue-800 border border-blue-200">Оприходование (Склад)</span>';
+            fin = `<span class="font-bold text-blue-700">+${op.total_amount.toFixed(2)} TJS (Приход)</span>`;
+          } else if (op.type === 'CLINIC_WRITE_OFF') {
+            opPrefix = 'Списание';
             badge = '<span class="px-2 py-0.5 rounded font-bold bg-amber-100 text-amber-800">Использование в клинике</span>';
             fin = '<span class="font-bold text-amber-700">0.00 TJS (Внутр. расход)</span>';
           } else if (op.payment_type === 'DEBT') {
+            opPrefix = 'В долг';
             badge = `<span class="px-2 py-0.5 rounded font-bold bg-rose-100 text-rose-800">В долг (${op.counterparty_name || 'Контрагент'})</span>`;
             fin = `<span class="font-bold text-rose-700">+${op.total_amount.toFixed(2)} TJS (Дебиторка)</span>`;
           } else if (op.payment_type === 'BANK_TRANSFER') {
-            badge = `<span class="px-2 py-0.5 rounded font-bold bg-blue-100 text-blue-800">Продажа (${op.bank_name})</span>`;
+            opPrefix = 'Безнал';
+            badge = `<span class="px-2 py-0.5 rounded font-bold bg-sky-100 text-sky-800">Безнал (${op.bank_name || 'Банк'})</span>`;
             fin = `<span class="font-bold text-emerald-700">+${op.total_amount.toFixed(2)} TJS (Оплачено)</span>`;
           } else {
+            opPrefix = 'Продажа';
             badge = '<span class="px-2 py-0.5 rounded font-bold bg-emerald-100 text-emerald-800">Продажа (Касса склада)</span>';
             fin = `<span class="font-bold text-emerald-700">+${op.total_amount.toFixed(2)} TJS (Оплачено)</span>`;
           }
@@ -1409,7 +1418,7 @@
 
           return `
             <tr class="hover:bg-slate-50">
-              <td class="py-3 px-4 font-mono font-bold text-slate-800">Списание #${op.operation_code}</td>
+              <td class="py-3 px-4 font-mono font-bold text-slate-800">${opPrefix} #${op.operation_code}</td>
               <td class="py-3 px-4 text-slate-700 font-medium">${itemsText}</td>
               <td class="py-3 px-4">${badge}</td>
               <td class="py-3 px-4 text-right font-mono-numbers">${fin}</td>

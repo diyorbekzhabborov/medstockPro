@@ -1,0 +1,1658 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="MedStock Pro">
+  <meta name="theme-color" content="#070B14">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" type="image/svg+xml" href="/icon.svg">
+  <link rel="apple-touch-icon" href="/icon.svg">
+  <title>MedStock Pro — Финтех Кабинет Владельца</title>
+  
+  <!-- Offline Tailwind CSS & Lucide Icons -->
+  <script src="/js/tailwind.min.js"></script>
+  <script src="/js/lucide.min.js"></script>
+
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Inter", "Helvetica Neue", Arial, sans-serif;
+      background-color: #070B14;
+      color: #F8FAFC;
+      -webkit-tap-highlight-color: transparent;
+      overscroll-behavior-y: contain;
+    }
+    .font-mono-numbers {
+      font-family: "Cascadia Code", "Consolas", "Courier New", monospace;
+    }
+    .pb-safe {
+      padding-bottom: env(safe-area-inset-bottom, 24px);
+    }
+    .pt-safe {
+      padding-top: env(safe-area-inset-top, 14px);
+    }
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    
+    /* Bank App Visual Theme */
+    .master-card {
+      background: linear-gradient(135deg, #064E3B 0%, #065F46 45%, #0F766E 100%);
+      border: 1px solid rgba(52, 211, 153, 0.28);
+      box-shadow: 0 16px 36px -10px rgba(6, 78, 59, 0.65);
+    }
+    .fintech-card {
+      background: rgba(18, 24, 38, 0.85);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .glass-card {
+      background: rgba(18, 24, 38, 0.85);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    /* Pull to refresh spring animation */
+    #pull-refresh-indicator {
+      transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.2s ease;
+    }
+
+    /* Fullscreen Bank PIN Screen Keypad */
+    .pin-key {
+      width: 76px;
+      height: 76px;
+      border-radius: 9999px;
+      background-color: rgba(30, 41, 59, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: #F8FAFC;
+      font-size: 1.85rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+      user-select: none;
+      cursor: pointer;
+    }
+    .pin-key:active {
+      transform: scale(0.88);
+      background-color: rgba(16, 185, 129, 0.28);
+      border-color: rgba(16, 185, 129, 0.6);
+      color: #34D399;
+    }
+
+    /* PIN Dot Animation */
+    .pin-dot-active {
+      background-color: #10B981 !important;
+      border-color: #34D399 !important;
+      box-shadow: 0 0 16px rgba(16, 185, 129, 0.9);
+      transform: scale(1.25);
+    }
+    @keyframes pinShake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-10px); }
+      40%, 80% { transform: translateX(10px); }
+    }
+    .pin-shake {
+      animation: pinShake 0.4s ease-in-out;
+    }
+  </style>
+</head>
+<body class="min-h-screen text-slate-100 flex flex-col justify-between max-w-md mx-auto bg-[#070B14] shadow-2xl relative select-none">
+
+  <!-- PULL-TO-REFRESH BANK-STYLE FLOATING PILL -->
+  <div id="pull-refresh-indicator" class="fixed top-0 left-0 right-0 max-w-md mx-auto flex items-center justify-center pointer-events-none z-50 transform -translate-y-full pt-safe">
+    <div class="mt-2 bg-slate-800/95 text-emerald-400 border border-slate-700/80 px-4 py-2 rounded-full shadow-2xl flex items-center gap-2 text-xs font-bold backdrop-blur-md">
+      <i id="pull-spinner" data-lucide="refresh-cw" class="w-4 h-4 transition-transform duration-200"></i>
+      <span id="pull-text">Потяните вниз для обновления</span>
+    </div>
+  </div>
+
+  <!-- TOP APP STATUS & PROFILE BAR -->
+  <header class="bg-[#070B14]/90 backdrop-blur-xl border-b border-slate-800/80 sticky top-0 z-40 px-5 pt-safe pb-3">
+    <div class="flex items-center justify-between">
+      
+      <!-- User Profile Badge -->
+      <div class="flex items-center gap-3">
+        <div class="relative">
+          <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-slate-950 font-black text-sm shadow-md shadow-emerald-500/20">
+            АЧ
+          </div>
+          <span class="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-400 border-2 border-[#070B14] rounded-full animate-pulse"></span>
+        </div>
+        <div>
+          <div class="flex items-center gap-1.5">
+            <h1 class="text-sm font-extrabold text-white tracking-tight">Абдуллочон Чабборов</h1>
+            <span class="text-[9px] bg-emerald-500/20 text-emerald-300 font-bold px-1.5 py-0.5 rounded-full border border-emerald-500/30">Владелец</span>
+          </div>
+          <p class="text-[11px] text-slate-400 font-medium flex items-center gap-1 mt-0.5">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+            <span>Онлайн • База чистая</span>
+          </p>
+        </div>
+      </div>
+
+      <!-- Header Actions: Refresh & Bell -->
+      <div class="flex items-center gap-2">
+        <button onclick="fetchDashboardData()" id="btn-refresh" class="p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 active:scale-95 transition cursor-pointer" title="Обновить баланс">
+          <i id="refresh-icon" data-lucide="refresh-cw" class="w-4 h-4"></i>
+        </button>
+        <button onclick="toggleNotifications()" class="relative p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 active:scale-95 transition cursor-pointer" title="Уведомления">
+          <i data-lucide="bell" class="w-4 h-4"></i>
+          <span id="bell-dot" class="absolute top-1.5 right-1.5 w-2 h-2 bg-emerald-400 rounded-full"></span>
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- NOTIFICATIONS MODAL -->
+  <div id="modal-notifications" class="fixed inset-0 bg-slate-950/85 backdrop-blur-sm flex items-start justify-center p-6 z-50 hidden pt-20">
+    <div class="fintech-card rounded-3xl max-w-sm w-full p-5 space-y-4 shadow-2xl border border-slate-700">
+      <div class="flex justify-between items-center border-b border-slate-700/60 pb-3">
+        <div class="flex items-center gap-2 font-extrabold text-white text-sm">
+          <i data-lucide="bell-ring" class="w-4 h-4 text-emerald-400"></i>
+          <span>Уведомления руководителя</span>
+        </div>
+        <button onclick="toggleNotifications()" class="text-slate-400 hover:text-white p-1">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+      <div class="space-y-2.5 text-xs">
+        <div class="p-3 bg-slate-800/90 border border-slate-700 rounded-2xl flex items-start gap-2.5">
+          <div class="p-1.5 bg-emerald-500/20 text-emerald-400 rounded-lg mt-0.5"><i data-lucide="database" class="w-3.5 h-3.5"></i></div>
+          <div>
+            <div class="font-bold text-slate-200">База готова к вводу</div>
+            <div class="text-[11px] text-slate-400 mt-0.5">В базе пока 0 операций. Поступления и продажи, оформленные на ПК склада, сразу отобразятся в телефоне.</div>
+          </div>
+        </div>
+        <div class="p-3 bg-slate-800/90 border border-slate-700 rounded-2xl flex items-start gap-2.5">
+          <div class="p-1.5 bg-teal-500/20 text-teal-400 rounded-lg mt-0.5"><i data-lucide="cloud-check" class="w-3.5 h-3.5"></i></div>
+          <div>
+            <div class="font-bold text-slate-200">Облачный канал связи активен</div>
+            <div class="text-[11px] text-slate-400 mt-0.5">При нажатии кнопки синхронизации на ПК данные моментально появляются в вашем мобильном приложении.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OWNER PIN-CODE AUTHENTICATION OVERLAY (FULL-SCREEN MOBILE BANK STYLE: 1223 & FACE ID) -->
+  <div id="owner-auth-screen" class="fixed inset-0 bg-[#070B14] z-50 flex flex-col justify-between px-6 py-10 select-none">
+    
+    <!-- Top Branding & Status -->
+    <div class="flex flex-col items-center pt-4 space-y-3">
+      <!-- Glow Logo Shield -->
+      <div class="w-16 h-16 rounded-3xl bg-gradient-to-tr from-emerald-500 via-teal-400 to-cyan-400 p-[2px] shadow-2xl shadow-emerald-500/30">
+        <div class="w-full h-full bg-[#070B14] rounded-[22px] flex items-center justify-center">
+          <i data-lucide="shield-check" class="w-8 h-8 text-emerald-400"></i>
+        </div>
+      </div>
+
+      <div class="text-center">
+        <h1 class="text-2xl font-black text-white tracking-tight">MedStock Pro</h1>
+        <p class="text-xs text-slate-400 font-medium mt-1">Абдуллочон Чабборов • Кабинет владельца</p>
+      </div>
+
+      <div class="pt-3">
+        <p class="text-xs font-semibold text-emerald-400 uppercase tracking-widest">Введите код доступа</p>
+      </div>
+
+      <!-- 4 PIN Indicator Dots -->
+      <div id="pin-dots-container" class="flex justify-center items-center gap-5 pt-2">
+        <div id="pin-dot-0" class="w-4 h-4 rounded-full border-2 border-slate-700 bg-slate-900/60 transition-all duration-200"></div>
+        <div id="pin-dot-1" class="w-4 h-4 rounded-full border-2 border-slate-700 bg-slate-900/60 transition-all duration-200"></div>
+        <div id="pin-dot-2" class="w-4 h-4 rounded-full border-2 border-slate-700 bg-slate-900/60 transition-all duration-200"></div>
+        <div id="pin-dot-3" class="w-4 h-4 rounded-full border-2 border-slate-700 bg-slate-900/60 transition-all duration-200"></div>
+      </div>
+
+      <!-- PIN Error Message -->
+      <div id="pin-error" class="hidden text-xs text-rose-400 bg-rose-950/70 border border-rose-800/80 px-4 py-2 rounded-2xl font-semibold mt-2 animate-bounce">
+        Неверный код доступа! Попробуйте снова.
+      </div>
+    </div>
+
+    <!-- Digital Numpad (Ergonomic Banking Keys + Native Face ID Button) -->
+    <div class="w-full max-w-[320px] mx-auto pb-6">
+      <div class="grid grid-cols-3 gap-y-4 gap-x-6 place-items-center">
+        <button type="button" onclick="enterPinDigit('1')" class="pin-key">1</button>
+        <button type="button" onclick="enterPinDigit('2')" class="pin-key">2</button>
+        <button type="button" onclick="enterPinDigit('3')" class="pin-key">3</button>
+
+        <button type="button" onclick="enterPinDigit('4')" class="pin-key">4</button>
+        <button type="button" onclick="enterPinDigit('5')" class="pin-key">5</button>
+        <button type="button" onclick="enterPinDigit('6')" class="pin-key">6</button>
+
+        <button type="button" onclick="enterPinDigit('7')" class="pin-key">7</button>
+        <button type="button" onclick="enterPinDigit('8')" class="pin-key">8</button>
+        <button type="button" onclick="enterPinDigit('9')" class="pin-key">9</button>
+
+        <!-- Face ID / Biometrics Button on Bottom-Left -->
+        <button type="button" id="btn-face-id" onclick="triggerBiometricAuth()" class="w-20 h-20 rounded-full flex flex-col items-center justify-center text-emerald-400 hover:text-white active:scale-90 active:bg-emerald-500/20 transition cursor-pointer select-none" title="Войти по Face ID / Touch ID">
+          <i data-lucide="scan-face" class="w-7 h-7"></i>
+          <span class="text-[9px] font-bold mt-1 text-emerald-300">Face ID</span>
+        </button>
+
+        <button type="button" onclick="enterPinDigit('0')" class="pin-key">0</button>
+        
+        <button type="button" onclick="deletePinDigit()" class="w-20 h-20 rounded-full flex items-center justify-center text-slate-400 hover:text-white active:scale-90 active:bg-slate-800 transition cursor-pointer">
+          <i data-lucide="delete" class="w-7 h-7"></i>
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- MAIN SCROLLABLE CONTAINER -->
+  <main class="flex-1 px-5 py-4 space-y-4 overflow-y-auto pb-24">
+
+    <!-- VIEW 1: FINTECH DASHBOARD (ЛАКОНИЧНЫЙ БАНКОВСКИЙ ДИЗАЙН) -->
+    <div id="view-dashboard" class="space-y-4">
+
+      <!-- 1. MASTER BANKING BALANCE CARD: ВЫРУЧКА ЗА СЕГОДНЯ -->
+      <div class="master-card rounded-3xl p-5 text-white relative overflow-hidden shadow-2xl">
+        <!-- Subtle ambient decorative glow -->
+        <div class="absolute -right-8 -top-8 w-40 h-40 bg-emerald-400/15 rounded-full blur-3xl pointer-events-none"></div>
+
+        <div class="relative z-10 space-y-3.5">
+          <!-- Card Header -->
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-emerald-300 animate-pulse"></span>
+              <span class="text-xs font-bold uppercase tracking-wider text-emerald-200">Выручка за сегодня</span>
+            </div>
+            <span class="px-2.5 py-0.5 rounded-full bg-black/25 text-[10px] font-bold text-emerald-200 border border-white/10">
+              TJS • Сомони
+            </span>
+          </div>
+
+          <!-- Main Amount (Starts at 0.00 TJS) -->
+          <div class="pt-0.5">
+            <div class="text-3xl font-black font-mono-numbers tracking-tight text-white flex items-baseline gap-2">
+              <span id="dash-today-total">0.00</span>
+              <span class="text-xl font-bold text-emerald-300">TJS</span>
+            </div>
+            <div class="text-[11px] text-emerald-100/80 mt-1 flex items-center gap-2 font-medium">
+              <span id="dash-today-date">Сегодня</span>
+              <span>•</span>
+              <span>Касса открыта</span>
+            </div>
+          </div>
+
+          <!-- Sub-pills: Наличные & Безнал / Банк -->
+          <div class="grid grid-cols-2 gap-2.5 pt-3 border-t border-white/15">
+            <div class="bg-black/25 rounded-2xl p-2.5 flex items-center gap-2.5 border border-white/5">
+              <div class="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-300 flex items-center justify-center shrink-0">
+                <i data-lucide="banknote" class="w-4 h-4"></i>
+              </div>
+              <div class="overflow-hidden">
+                <div class="text-[10px] text-slate-300 font-medium">Наличные (Касса)</div>
+                <div class="text-xs font-bold font-mono-numbers text-white truncate"><span id="dash-today-cash">0.00</span> TJS</div>
+              </div>
+            </div>
+
+            <div class="bg-black/25 rounded-2xl p-2.5 flex items-center gap-2.5 border border-white/5">
+              <div class="w-8 h-8 rounded-xl bg-teal-500/20 text-teal-300 flex items-center justify-center shrink-0">
+                <i data-lucide="credit-card" class="w-4 h-4"></i>
+              </div>
+              <div class="overflow-hidden">
+                <div class="text-[10px] text-slate-300 font-medium">Безнал (Банки)</div>
+                <div class="text-xs font-bold font-mono-numbers text-white truncate"><span id="dash-today-cashless">0.00</span> TJS</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- 2. QUICK ACTION ROUND BUTTONS (БЫСТРЫЕ ДЕЙСТВИЯ - В СТИЛЕ БАНКОВСКИХ ПРИЛОЖЕНИЙ) -->
+      <div class="grid grid-cols-4 gap-2 text-center py-0.5">
+        <button onclick="switchView('products')" class="flex flex-col items-center gap-1.5 p-2 rounded-2xl bg-slate-800/60 border border-slate-700/50 hover:bg-slate-800 active:scale-95 transition">
+          <div class="w-11 h-11 rounded-2xl bg-teal-500/15 text-teal-400 flex items-center justify-center shadow-md">
+            <i data-lucide="package" class="w-5 h-5"></i>
+          </div>
+          <span class="text-[11px] font-bold text-slate-200">Склад</span>
+        </button>
+
+        <button onclick="switchView('debts')" class="flex flex-col items-center gap-1.5 p-2 rounded-2xl bg-slate-800/60 border border-slate-700/50 hover:bg-slate-800 active:scale-95 transition">
+          <div class="w-11 h-11 rounded-2xl bg-amber-500/15 text-amber-400 flex items-center justify-center shadow-md">
+            <i data-lucide="users" class="w-5 h-5"></i>
+          </div>
+          <span class="text-[11px] font-bold text-slate-200">Дебиторы</span>
+        </button>
+
+        <button onclick="switchView('transactions')" class="flex flex-col items-center gap-1.5 p-2 rounded-2xl bg-slate-800/60 border border-slate-700/50 hover:bg-slate-800 active:scale-95 transition">
+          <div class="w-11 h-11 rounded-2xl bg-sky-500/15 text-sky-400 flex items-center justify-center shadow-md">
+            <i data-lucide="receipt" class="w-5 h-5"></i>
+          </div>
+          <span class="text-[11px] font-bold text-slate-200">Журнал</span>
+        </button>
+
+        <button onclick="fetchDashboardData()" class="flex flex-col items-center gap-1.5 p-2 rounded-2xl bg-slate-800/60 border border-slate-700/50 hover:bg-slate-800 active:scale-95 transition">
+          <div class="w-11 h-11 rounded-2xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center shadow-md">
+            <i data-lucide="refresh-cw" class="w-5 h-5"></i>
+          </div>
+          <span class="text-[11px] font-bold text-slate-200">Обновить</span>
+        </button>
+      </div>
+
+      <!-- 3. TWO CLEAR SUMMARY TILES: КАПИТАЛИЗАЦИЯ СКЛАДА & ДОЛГИ КЛИЕНТОВ -->
+      <div class="grid grid-cols-2 gap-3">
+        
+        <!-- CARD 1: КАПИТАЛИЗАЦИЯ СКЛАДА -->
+        <div onclick="switchView('products')" class="fintech-card rounded-3xl p-4 flex flex-col justify-between cursor-pointer active:scale-98 transition hover:border-teal-500/40">
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <div class="w-8 h-8 rounded-xl bg-teal-500/15 text-teal-400 flex items-center justify-center">
+                <i data-lucide="boxes" class="w-4 h-4"></i>
+              </div>
+              <span class="text-[10px] font-bold text-teal-400 bg-teal-500/10 px-2 py-0.5 rounded-full border border-teal-500/20" id="dash-products-count">
+                0 позиций
+              </span>
+            </div>
+            <div class="text-[11px] font-medium text-slate-400">Капитализация склада</div>
+            <div class="text-lg font-black font-mono-numbers text-white mt-1">
+              <span id="dash-capitalization">0.00</span> <span class="text-xs font-bold text-teal-400">TJS</span>
+            </div>
+          </div>
+          <div class="text-[10px] text-teal-400/90 font-semibold pt-2 border-t border-slate-800/80 mt-2.5 flex items-center justify-between">
+            <span>Открыть склад</span>
+            <span>→</span>
+          </div>
+        </div>
+
+        <!-- CARD 2: МНЕ ДОЛЖНЫ КЛИЕНТЫ (ДЕБИТОРЫ) -->
+        <div onclick="switchView('debts')" class="fintech-card rounded-3xl p-4 flex flex-col justify-between cursor-pointer active:scale-98 transition hover:border-amber-500/40">
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <div class="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-400 flex items-center justify-center">
+                <i data-lucide="clock" class="w-4 h-4"></i>
+              </div>
+              <span class="text-[10px] font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20" id="dash-debtors-badge">
+                0 должников
+              </span>
+            </div>
+            <div class="text-[11px] font-medium text-slate-400">Мне должны клиенты</div>
+            <div class="text-lg font-black font-mono-numbers text-amber-400 mt-1">
+              <span id="dash-debts-total">0.00</span> <span class="text-xs font-bold text-amber-400/80">TJS</span>
+            </div>
+          </div>
+          <div class="text-[10px] text-amber-400/90 font-semibold pt-2 border-t border-slate-800/80 mt-2.5 flex items-center justify-between">
+            <span>Реестр дебиторов</span>
+            <span>→</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- 4. COMPACT CLINIC EXPENSE TILE -->
+      <div onclick="filterTransactions('CLINIC_WRITE_OFF')" class="fintech-card rounded-2xl p-3.5 flex items-center justify-between cursor-pointer active:scale-98 transition hover:border-sky-500/40">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-xl bg-sky-500/15 text-sky-400 flex items-center justify-center shrink-0">
+            <i data-lucide="hospital" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <div class="text-xs font-bold text-white">Расход клиники (Списание)</div>
+            <div class="text-[11px] text-slate-400 font-medium">
+              <span id="dash-clinic-badge">0 операций</span>
+            </div>
+          </div>
+        </div>
+        <div class="text-right">
+          <div class="text-sm font-black font-mono-numbers text-sky-400">
+            <span id="dash-clinic-expense">0.00</span> TJS
+          </div>
+          <div class="text-[10px] text-slate-500 font-semibold">Детали →</div>
+        </div>
+      </div>
+
+      <!-- 5. RECENT ACTIVITY (ПОСЛЕДНИЕ ОПЕРАЦИИ - БАНКОВСКАЯ ВЫПИСКА) -->
+      <div class="space-y-2.5 pt-1">
+        <div class="flex items-center justify-between px-1">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+            <i data-lucide="activity" class="w-4 h-4 text-emerald-400"></i>
+            <span>Последние операции</span>
+          </h3>
+          <button onclick="switchView('transactions')" class="text-xs font-bold text-emerald-400 hover:text-emerald-300">
+            Все →
+          </button>
+        </div>
+
+        <div id="dash-recent-list" class="space-y-2">
+          <!-- Populated dynamically via JS or clean zero-state -->
+          <div class="fintech-card rounded-2xl p-5 text-center text-slate-500 text-xs border border-slate-800">
+            <i data-lucide="inbox" class="w-7 h-7 text-slate-600 mx-auto mb-1.5"></i>
+            <div class="font-bold text-slate-300">В базе пока нет записей</div>
+            <p class="text-[11px] text-slate-500 mt-0.5">Операции склада появятся здесь после ввода на ПК.</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- VIEW 2: ЖУРНАЛ ОПЕРАЦИЙ («ЖУРНАЛ») -->
+    <div id="view-transactions" class="space-y-4 hidden">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-base font-bold text-white">Журнал операций</h2>
+          <p class="text-xs text-slate-400">Полный реестр поступлений, продаж и списаний медикаментов</p>
+        </div>
+      </div>
+
+      <!-- Filter chips -->
+      <div class="flex gap-2 text-xs overflow-x-auto pb-1 no-scrollbar">
+        <button onclick="filterFeed('ALL')" id="filter-btn-all" class="filter-chip px-3.5 py-1.5 rounded-full font-bold bg-emerald-500 text-slate-950">Все</button>
+        <button onclick="filterFeed('RECEIVE')" id="filter-btn-receive" class="filter-chip px-3.5 py-1.5 rounded-full font-semibold bg-slate-800 border border-slate-700 text-slate-300">Приход</button>
+        <button onclick="filterFeed('SALE')" id="filter-btn-sale" class="filter-chip px-3.5 py-1.5 rounded-full font-semibold bg-slate-800 border border-slate-700 text-slate-300">Продажи</button>
+        <button onclick="filterFeed('CLINIC_WRITE_OFF')" id="filter-btn-clinic" class="filter-chip px-3.5 py-1.5 rounded-full font-semibold bg-slate-800 border border-slate-700 text-slate-300">В клинику</button>
+        <button onclick="filterFeed('DEBT')" id="filter-btn-debt" class="filter-chip px-3.5 py-1.5 rounded-full font-semibold bg-slate-800 border border-slate-700 text-slate-300">В долг</button>
+      </div>
+
+      <div id="transactions-feed-container" class="space-y-2.5">
+        <div class="fintech-card rounded-2xl p-8 text-center text-slate-500 text-xs border border-slate-800">
+          <i data-lucide="inbox" class="w-8 h-8 text-slate-600 mx-auto mb-2"></i>
+          <div>В журнале пока нет записей</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW 3: РЕЕСТР ДЕБИТОРОВ («ДЕБИТОРЫ») -->
+    <div id="view-debts" class="space-y-4 hidden">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-base font-bold text-white">Реестр дебиторов</h2>
+          <p class="text-xs text-slate-400">Товары, отпущенные под реализацию</p>
+        </div>
+        <div class="text-right">
+          <span class="text-[10px] text-slate-400 font-bold uppercase">Сумма долгов</span>
+          <div class="text-base font-black font-mono-numbers text-amber-400" id="debts-view-total">0.00 TJS</div>
+        </div>
+      </div>
+
+      <div id="debts-list-container" class="space-y-3">
+        <div class="fintech-card rounded-2xl p-8 text-center text-slate-500 text-xs border border-slate-800">
+          <i data-lucide="user-check" class="w-8 h-8 text-slate-600 mx-auto mb-2"></i>
+          <div class="font-bold text-slate-300">Активных должников нет</div>
+          <p class="text-[11px] text-slate-500 mt-0.5">Все расчёты закрыты или база чистая.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW 4: ОСТАТКИ НА СКЛАДЕ («СКЛАД») -->
+    <div id="view-products" class="space-y-4 hidden">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-base font-bold text-white">Остатки на складе</h2>
+          <p class="text-xs text-slate-400">Наличие медикаментов на складе</p>
+        </div>
+      </div>
+
+      <div class="relative">
+        <input type="text" id="pwa-prod-search" oninput="renderPwaProducts(this.value)" placeholder="Поиск медикамента по названию..." class="w-full text-xs px-3.5 py-3 bg-slate-800 border border-slate-700 text-white rounded-2xl pl-10 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+        <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5"></i>
+      </div>
+
+      <div id="pwa-products-container" class="space-y-2.5">
+        <div class="fintech-card rounded-2xl p-8 text-center text-slate-500 text-xs border border-slate-800">
+          <i data-lucide="package-open" class="w-8 h-8 text-slate-600 mx-auto mb-2"></i>
+          <div class="font-bold text-slate-300">На складе нет товаров</div>
+          <p class="text-[11px] text-slate-500 mt-0.5">Добавьте номенклатуру товаров на компьютере склада.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW 5: ПРОФИЛЬ РУКОВОДИТЕЛЯ («ПРОФИЛЬ») -->
+    <div id="view-profile" class="space-y-4 hidden">
+      <div class="fintech-card rounded-3xl p-6 border border-slate-800 space-y-4 text-center">
+        <div class="w-20 h-20 rounded-full bg-gradient-to-tr from-emerald-500 to-teal-400 text-slate-950 flex items-center justify-center mx-auto text-2xl font-black shadow-lg shadow-emerald-500/20">
+          АЧ
+        </div>
+        <div>
+          <h2 class="text-lg font-black text-white">Абдуллочон Чабборов</h2>
+          <p class="text-xs font-semibold text-emerald-400 bg-emerald-500/15 border border-emerald-500/30 inline-block px-3 py-1 rounded-full mt-1">Руководитель / Владелец бизнеса</p>
+        </div>
+
+        <div class="pt-2 border-t border-slate-800 space-y-2 text-left text-xs">
+          <div class="flex justify-between items-center p-3 bg-slate-800/60 rounded-2xl border border-slate-700/50">
+            <span class="text-slate-400 font-medium">Онлайн-база:</span>
+            <span class="font-bold text-emerald-400 flex items-center gap-1.5 font-mono text-[11px]">
+              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Supabase (PostgreSQL)
+            </span>
+          </div>
+          <div class="flex justify-between items-center p-3 bg-slate-800/60 rounded-2xl border border-slate-700/50">
+            <span class="text-slate-400 font-medium">Город склада:</span>
+            <span class="font-bold text-white">г. Худжанд, Таджикистан</span>
+          </div>
+          <div class="flex justify-between items-center p-3 bg-slate-800/60 rounded-2xl border border-slate-700/50">
+            <span class="text-slate-400 font-medium">Валюта учёта:</span>
+            <span class="font-bold text-white">Таджикский сомони (TJS)</span>
+          </div>
+          <div class="flex justify-between items-center p-3 bg-slate-800/60 rounded-2xl border border-slate-700/50">
+            <span class="text-slate-400 font-medium">Вход по Face ID / Биометрии:</span>
+            <button onclick="triggerBiometricAuth()" class="font-bold text-emerald-400 hover:underline flex items-center gap-1">
+              <i data-lucide="scan-face" class="w-3.5 h-3.5"></i> Настроить
+            </button>
+          </div>
+        </div>
+
+        <div class="pt-2">
+          <button onclick="logoutOwner()" class="w-full py-3.5 bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 text-rose-400 font-bold text-xs rounded-2xl transition cursor-pointer flex items-center justify-center gap-2 active:scale-95">
+            <i data-lucide="lock" class="w-4 h-4"></i>
+            <span>Заблокировать кабинет (Выход)</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- REPAY DEBT MODAL -->
+  <div id="modal-pay-debt" class="fixed inset-0 bg-slate-950/85 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-6 z-50 hidden">
+    <div class="bg-slate-900 border border-slate-800 rounded-t-3xl sm:rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl">
+      <div class="flex justify-between items-start border-b border-slate-800 pb-3">
+        <div>
+          <h3 class="font-extrabold text-base text-white">Погашение долга</h3>
+          <p class="text-xs text-slate-400" id="pay-modal-debtor-name">Клиент</p>
+        </div>
+        <button onclick="closePayModal()" class="text-slate-400 hover:text-white p-1">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div class="p-3 bg-slate-800 rounded-xl flex justify-between items-baseline">
+          <span class="text-slate-400 font-semibold">Остаток долга:</span>
+          <span class="text-lg font-black font-mono-numbers text-amber-400" id="pay-modal-remaining">0.00 TJS</span>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-300 mb-1">Сумма к оплате (TJS):</label>
+          <input type="number" step="0.5" id="pay-modal-amount" class="w-full text-base font-bold font-mono-numbers px-3 py-2.5 bg-slate-800 border border-slate-700 text-white rounded-xl focus:ring-2 focus:ring-emerald-500">
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-300 mb-1">Способ зачисления:</label>
+          <select id="pay-modal-method" class="w-full font-semibold px-3 py-2.5 bg-slate-800 border border-slate-700 text-white rounded-xl focus:ring-2 focus:ring-emerald-500">
+            <option value="CASH">Наличные (Касса)</option>
+            <option value="Dushanbe City (DC)">Dushanbe City (DC)</option>
+            <option value="Алиф Банк / Alif Mobi">Алиф Банк / Alif Mobi</option>
+            <option value="Банк Эсхата">Банк Эсхата</option>
+            <option value="Амонатбонк">Амонатбонк</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-300 mb-1">Номер квитанции / чек:</label>
+          <input type="text" id="pay-modal-ref" placeholder="Напр: DC-984019" class="w-full px-3 py-2.5 bg-slate-800 border border-slate-700 text-white rounded-xl">
+        </div>
+
+        <button onclick="submitDebtPayment()" class="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-black text-sm rounded-xl shadow-lg shadow-emerald-500/20 active:scale-95 transition cursor-pointer">
+          Подтвердить погашение
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SHARE REMINDER MODAL (WHATSAPP / TELEGRAM) -->
+  <div id="modal-share-reminder" class="fixed inset-0 bg-slate-950/85 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-6 z-50 hidden">
+    <div class="bg-slate-900 border border-slate-800 rounded-t-3xl sm:rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl">
+      <div class="flex justify-between items-start border-b border-slate-800 pb-3">
+        <div>
+          <h3 class="font-extrabold text-base text-white">Связаться в мессенджере</h3>
+          <p class="text-xs text-slate-400 mt-0.5" id="share-modal-debtor">Клиент</p>
+        </div>
+        <button onclick="closeShareModal()" class="text-slate-400 hover:text-white p-1">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="space-y-3 pt-1">
+        <p class="text-xs text-slate-400">Прямой переход в диалог с клиентом:</p>
+        <div class="grid grid-cols-2 gap-3">
+          <a id="share-btn-wa" href="#" target="_blank" class="py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/50 active:scale-95 transition">
+            <i data-lucide="message-circle" class="w-5 h-5"></i>
+            <span class="text-sm">WhatsApp</span>
+          </a>
+
+          <a id="share-btn-tg" href="#" target="_blank" class="py-3.5 bg-sky-600 hover:bg-sky-500 text-white font-bold rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-sky-950/50 active:scale-95 transition">
+            <i data-lucide="send" class="w-5 h-5"></i>
+            <span class="text-sm">Telegram</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTTOM FIXED NAVIGATION BAR -->
+  <nav class="bg-[#070B14]/95 backdrop-blur-xl border-t border-slate-800/80 fixed bottom-0 left-0 right-0 max-w-md mx-auto z-40 px-4 py-2.5 pb-safe shadow-2xl">
+    <div class="flex justify-around items-center text-[10px] font-bold">
+      
+      <!-- Tab 1: Главная (Dashboard) -->
+      <button onclick="switchView('dashboard')" id="nav-btn-dashboard" class="nav-btn flex flex-col items-center gap-1 py-1 px-2.5 text-emerald-400 transition">
+        <i data-lucide="layout-grid" class="w-5 h-5"></i>
+        <span>Дашборд</span>
+      </button>
+
+      <!-- Tab 2: Журнал -->
+      <button onclick="switchView('transactions')" id="nav-btn-transactions" class="nav-btn flex flex-col items-center gap-1 py-1 px-2.5 text-slate-400 hover:text-slate-200 transition">
+        <i data-lucide="receipt" class="w-5 h-5"></i>
+        <span>Журнал</span>
+      </button>
+
+      <!-- Tab 3: Дебиторы -->
+      <button onclick="switchView('debts')" id="nav-btn-debts" class="nav-btn flex flex-col items-center gap-1 py-1 px-2.5 text-slate-400 hover:text-slate-200 transition">
+        <i data-lucide="users" class="w-5 h-5"></i>
+        <span>Дебиторы</span>
+      </button>
+
+      <!-- Tab 4: Склад -->
+      <button onclick="switchView('products')" id="nav-btn-products" class="nav-btn flex flex-col items-center gap-1 py-1 px-2.5 text-slate-400 hover:text-slate-200 transition">
+        <i data-lucide="boxes" class="w-5 h-5"></i>
+        <span>Склад</span>
+      </button>
+
+      <!-- Tab 5: Профиль -->
+      <button onclick="switchView('profile')" id="nav-btn-profile" class="nav-btn flex flex-col items-center gap-1 py-1 px-2.5 text-slate-400 hover:text-slate-200 transition">
+        <i data-lucide="user" class="w-5 h-5"></i>
+        <span>Профиль</span>
+      </button>
+
+    </div>
+  </nav>
+
+  <!-- PWA CLIENT LOGIC SCRIPT -->
+  <script>
+    let dashboardData = null;
+    let debtsData = [];
+    let productsData = [];
+    let activeDebtToPay = null;
+    let currentFeedFilter = 'ALL';
+
+    // PIN Authentication State (Target PIN: strictly 1223)
+    const TARGET_PIN = '1223';
+    let currentPinInput = '';
+
+    function updatePinDots() {
+      for (let i = 0; i < 4; i++) {
+        const dot = document.getElementById(`pin-dot-${i}`);
+        if (i < currentPinInput.length) {
+          dot.classList.add('pin-dot-active');
+        } else {
+          dot.classList.remove('pin-dot-active');
+        }
+      }
+    }
+
+    function enterPinDigit(digit) {
+      if (currentPinInput.length >= 4) return;
+      currentPinInput += digit;
+      updatePinDots();
+      document.getElementById('pin-error').classList.add('hidden');
+
+      if (currentPinInput.length === 4) {
+        setTimeout(verifyPinCode, 150);
+      }
+    }
+
+    function deletePinDigit() {
+      if (currentPinInput.length > 0) {
+        currentPinInput = currentPinInput.slice(0, -1);
+        updatePinDots();
+      }
+      document.getElementById('pin-error').classList.add('hidden');
+    }
+
+    function verifyPinCode() {
+      if (currentPinInput === TARGET_PIN) {
+        unlockApp();
+        // Offer biometric prompt on iOS if not yet registered
+        if (!localStorage.getItem('medstock_bio_cred_id')) {
+          setTimeout(() => {
+            checkBiometricsSupport();
+          }, 600);
+        }
+      } else {
+        // Error
+        if (navigator.vibrate) navigator.vibrate([40, 60, 40]);
+        const container = document.getElementById('pin-dots-container');
+        container.classList.add('pin-shake');
+        document.getElementById('pin-error').classList.remove('hidden');
+
+        setTimeout(() => {
+          container.classList.remove('pin-shake');
+          currentPinInput = '';
+          updatePinDots();
+        }, 450);
+      }
+    }
+
+    function unlockApp() {
+      if (navigator.vibrate) navigator.vibrate(25);
+      document.getElementById('owner-auth-screen').classList.add('hidden');
+      document.getElementById('pin-error').classList.add('hidden');
+      currentPinInput = '';
+      updatePinDots();
+
+      fetchDashboardData();
+      fetchDebtsData();
+      fetchProductsData();
+    }
+
+    function logoutOwner() {
+      currentPinInput = '';
+      updatePinDots();
+      document.getElementById('pin-error').classList.add('hidden');
+      document.getElementById('owner-auth-screen').classList.remove('hidden');
+    }
+
+    // NATIVE FACE ID / TOUCH ID (WEBAUTHN PLATFORM AUTHENTICATOR)
+    async function checkBiometricsSupport() {
+      try {
+        if (window.PublicKeyCredential && 
+            typeof PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable === 'function') {
+          return await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+        }
+      } catch (e) {
+        return false;
+      }
+      return false;
+    }
+
+    async function triggerBiometricAuth() {
+      const btn = document.getElementById('btn-face-id');
+      if (btn) btn.classList.add('animate-pulse');
+
+      try {
+        if (!window.PublicKeyCredential) {
+          alert('Ваше устройство или браузер не поддерживает Face ID / биометрию.');
+          return;
+        }
+
+        const savedCredId = localStorage.getItem('medstock_bio_cred_id');
+        const challenge = new Uint8Array(32);
+        window.crypto.getRandomValues(challenge);
+
+        if (savedCredId) {
+          // 1. Verify Face ID using saved credential
+          const rawCredId = Uint8Array.from(atob(savedCredId), c => c.charCodeAt(0));
+          const assertion = await navigator.credentials.get({
+            publicKey: {
+              challenge: challenge,
+              timeout: 60000,
+              userVerification: "required",
+              allowCredentials: [{
+                id: rawCredId,
+                type: "public-key"
+              }]
+            }
+          });
+
+          if (assertion) {
+            unlockApp();
+            return;
+          }
+        } else {
+          // 2. First-time registration of Face ID
+          const userId = new Uint8Array(16);
+          window.crypto.getRandomValues(userId);
+
+          const credential = await navigator.credentials.create({
+            publicKey: {
+              challenge: challenge,
+              rp: {
+                name: "MedStock Pro",
+                id: window.location.hostname || "localhost"
+              },
+              user: {
+                id: userId,
+                name: "abdullojhon",
+                displayName: "Абдуллочон Чабборов"
+              },
+              pubKeyCredParams: [
+                { alg: -7, type: "public-key" },  // ES256
+                { alg: -257, type: "public-key" } // RS256
+              ],
+              authenticatorSelection: {
+                authenticatorAttachment: "platform",
+                userVerification: "required"
+              },
+              timeout: 60000
+            }
+          });
+
+          if (credential) {
+            const credIdBase64 = btoa(String.fromCharCode(...new Uint8Array(credential.rawId)));
+            localStorage.setItem('medstock_bio_cred_id', credIdBase64);
+            localStorage.setItem('medstock_bio_enabled', 'true');
+            unlockApp();
+            return;
+          }
+        }
+      } catch (err) {
+        console.log('Face ID auth info:', err);
+        // If not allowed or user cancelled, just stay on PIN pad
+      } finally {
+        if (btn) btn.classList.remove('animate-pulse');
+      }
+    }
+
+    // Format helpers
+    function formatTJS(num) {
+      return (Number(num) || 0).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    // Toggle Notifications
+    function toggleNotifications() {
+      const modal = document.getElementById('modal-notifications');
+      modal.classList.toggle('hidden');
+      document.getElementById('bell-dot').classList.add('hidden');
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      // Set today's date formatted
+      try {
+        const todayStr = new Intl.DateTimeFormat('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date());
+        const elDate = document.getElementById('dash-today-date');
+        if (elDate) {
+          elDate.innerText = todayStr.charAt(0).toUpperCase() + todayStr.slice(1);
+        }
+      } catch(e) {}
+
+      lucide.createIcons();
+      // Prompt for PIN on entrance
+      document.getElementById('owner-auth-screen').classList.remove('hidden');
+
+      // Auto-trigger Face ID if previously registered on this device
+      if (localStorage.getItem('medstock_bio_cred_id')) {
+        setTimeout(() => {
+          triggerBiometricAuth();
+        }, 350);
+      }
+
+      // Setup Pull to Refresh gesture
+      setupPullToRefresh();
+
+      // Register Service Worker for PWA
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js').catch(err => console.log('SW error:', err));
+      }
+    });
+
+    // PULL-TO-REFRESH IMPLEMENTATION (BANK APPS STYLE)
+    function setupPullToRefresh() {
+      const scrollEl = document.querySelector('main');
+      const indicator = document.getElementById('pull-refresh-indicator');
+      const spinner = document.getElementById('pull-spinner');
+      const text = document.getElementById('pull-text');
+      
+      let startY = 0;
+      let isPulling = false;
+      let currentDistance = 0;
+      const PULL_THRESHOLD = 65;
+
+      scrollEl.addEventListener('touchstart', (e) => {
+        if (scrollEl.scrollTop <= 2) {
+          startY = e.touches[0].clientY;
+          isPulling = true;
+        } else {
+          isPulling = false;
+        }
+      }, { passive: true });
+
+      scrollEl.addEventListener('touchmove', (e) => {
+        if (!isPulling) return;
+        const currentY = e.touches[0].clientY;
+        const delta = currentY - startY;
+
+        if (delta > 0 && scrollEl.scrollTop <= 2) {
+          currentDistance = Math.min(delta * 0.45, 95);
+          indicator.style.transform = `translateY(${currentDistance}px)`;
+
+          if (currentDistance >= PULL_THRESHOLD) {
+            text.innerText = 'Отпустите для обновления';
+            spinner.style.transform = 'rotate(180deg)';
+          } else {
+            text.innerText = 'Потяните вниз для обновления';
+            spinner.style.transform = `rotate(${currentDistance * 3}deg)`;
+          }
+        }
+      }, { passive: true });
+
+      scrollEl.addEventListener('touchend', async () => {
+        if (!isPulling) return;
+        isPulling = false;
+
+        if (currentDistance >= PULL_THRESHOLD) {
+          indicator.style.transform = `translateY(${PULL_THRESHOLD}px)`;
+          text.innerText = 'Обновление данных...';
+          spinner.classList.add('animate-spin');
+          if (navigator.vibrate) navigator.vibrate(25);
+
+          await Promise.all([
+            fetchDashboardData(),
+            fetchDebtsData(),
+            fetchProductsData()
+          ]);
+
+          text.innerText = 'Обновлено!';
+          setTimeout(() => {
+            indicator.style.transform = 'translateY(-100%)';
+            spinner.classList.remove('animate-spin');
+            spinner.style.transform = 'none';
+            text.innerText = 'Потяните вниз для обновления';
+          }, 450);
+        } else {
+          indicator.style.transform = 'translateY(-100%)';
+          spinner.style.transform = 'none';
+        }
+        currentDistance = 0;
+      });
+    }
+
+    // View Switching
+    function switchView(viewName) {
+      document.querySelectorAll('#view-dashboard, #view-debts, #view-transactions, #view-products, #view-profile').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.nav-btn').forEach(b => {
+        b.classList.remove('text-emerald-400');
+        b.classList.add('text-slate-400');
+      });
+
+      const target = document.getElementById(`view-${viewName}`);
+      if (target) target.classList.remove('hidden');
+
+      const activeNav = document.getElementById(`nav-btn-${viewName}`);
+      if (activeNav) {
+        activeNav.classList.remove('text-slate-400');
+        activeNav.classList.add('text-emerald-400');
+      }
+
+      lucide.createIcons();
+    }
+
+    // ====================================================================
+    // SUPABASE ONLINE DATABASE CLIENT & SYNC LAYER
+    // ====================================================================
+    const SUPABASE_CONFIG = {
+      url: 'https://mljkzfoghenkawgnesoc.supabase.co',
+      key: 'sb_publishable_n6VJcDu1klU7OZfW6_x8bw_gis2V45G'
+    };
+
+    async function querySupabase(endpoint, options = {}) {
+      const url = `${SUPABASE_CONFIG.url}/rest/v1/${endpoint}`;
+      const headers = {
+        'apikey': SUPABASE_CONFIG.key,
+        'Authorization': `Bearer ${SUPABASE_CONFIG.key}`,
+        'Content-Type': 'application/json',
+        ...(options.headers || {})
+      };
+      const res = await fetch(url, { ...options, headers });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`Supabase [${res.status}]: ${text}`);
+      }
+      if (res.status === 204) return null;
+      return await res.json();
+    }
+
+    function isSameDay(d1, d2) {
+      return d1.getFullYear() === d2.getFullYear() &&
+             d1.getMonth() === d2.getMonth() &&
+             d1.getDate() === d2.getDate();
+    }
+
+    function isSameMonth(d1, d2) {
+      return d1.getFullYear() === d2.getFullYear() &&
+             d1.getMonth() === d2.getMonth();
+    }
+
+    function computeDashboardFromSupabase(products, operations, items, debts) {
+      const now = new Date();
+      
+      // 1. Capitalization
+      let capitalization = 0;
+      let totalUnits = 0;
+      (products || []).forEach(p => {
+        const qty = Number(p.stock_quantity) || 0;
+        const price = Number(p.retail_price) || 0;
+        capitalization += qty * price;
+        totalUnits += qty;
+      });
+
+      // 2. Debts
+      let totalDebts = 0;
+      let activeDebtorsCount = 0;
+      (debts || []).forEach(d => {
+        if (d.status !== 'PAID') {
+          totalDebts += Number(d.remaining_amount) || 0;
+          activeDebtorsCount += 1;
+        }
+      });
+
+      // Map items by operation_id
+      const itemsByOp = {};
+      (items || []).forEach(it => {
+        if (!itemsByOp[it.operation_id]) itemsByOp[it.operation_id] = [];
+        itemsByOp[it.operation_id].push(it);
+      });
+
+      // 3. Clinic Expense this month
+      let clinicExpenseMonth = 0;
+      let clinicOperationsCount = 0;
+
+      // 4. Revenue Today
+      const revenueToday = {
+        total: 0,
+        cash: 0,
+        cashless: 0,
+        banks: {
+          'Dushanbe City (DC)': 0,
+          'Банк Эсхата': 0,
+          'Алиф Банк / Alif Mobi': 0,
+          'Амонатбонк / Другой банк': 0
+        }
+      };
+
+      const transactions = [];
+
+      (operations || []).forEach(op => {
+        const opDate = new Date(op.created_at);
+        const opItems = itemsByOp[op.id] || [];
+        const amount = Number(op.total_amount) || 0;
+
+        // Clinic write-off this month
+        if (op.type === 'CLINIC_WRITE_OFF' && isSameMonth(opDate, now)) {
+          clinicOperationsCount += 1;
+          const opItemCost = opItems.reduce((s, it) => s + (Number(it.quantity) * Number(it.unit_price)), 0);
+          clinicExpenseMonth += opItemCost;
+        }
+
+        // Revenue today
+        if (op.type === 'SALE' && isSameDay(opDate, now)) {
+          revenueToday.total += amount;
+          if (op.payment_type === 'CASH') {
+            revenueToday.cash += amount;
+          } else if (op.payment_type === 'BANK_TRANSFER') {
+            revenueToday.cashless += amount;
+            const b = op.bank_name || 'Dushanbe City (DC)';
+            if (!revenueToday.banks[b]) revenueToday.banks[b] = 0;
+            revenueToday.banks[b] += amount;
+          }
+        }
+
+        const summary = opItems.length > 0 
+          ? opItems.map(it => `${it.product_name} (${it.quantity} шт.)`).join(', ')
+          : (op.notes || 'Операция склада');
+
+        transactions.push({
+          id: op.id,
+          operationCode: op.operation_code,
+          type: op.type,
+          paymentType: op.payment_type,
+          bankName: op.bank_name,
+          totalAmount: amount,
+          counterpartyName: op.counterparty_name,
+          counterpartyPhone: op.counterparty_phone,
+          status: op.status,
+          createdAt: op.created_at,
+          items: opItems,
+          itemsSummary: summary,
+          categoryBadge: op.type === 'SALE' 
+            ? (op.payment_type === 'DEBT' ? 'Долг' : 'Продажа') 
+            : (op.type === 'CLINIC_WRITE_OFF' ? 'Расход клиники' : 'Приход')
+        });
+      });
+
+      return {
+        kpis: {
+          capitalization: Number(capitalization.toFixed(2)),
+          productsCount: (products || []).length,
+          totalUnits,
+          totalDebts: Number(totalDebts.toFixed(2)),
+          activeDebtorsCount,
+          clinicExpenseMonth: Number(clinicExpenseMonth.toFixed(2)),
+          clinicOperationsCount,
+          revenueToday: {
+            total: Number(revenueToday.total.toFixed(2)),
+            cash: Number(revenueToday.cash.toFixed(2)),
+            cashless: Number(revenueToday.cashless.toFixed(2)),
+            banks: revenueToday.banks
+          }
+        },
+        transactions
+      };
+    }
+
+    // Fetch Dashboard Analytics
+    async function fetchDashboardData() {
+      const refreshIcon = document.getElementById('refresh-icon');
+      if (refreshIcon) refreshIcon.classList.add('animate-spin');
+
+      try {
+        // 1. Primary: Direct query to Supabase Online Database
+        try {
+          const [products, operations, items, debts] = await Promise.all([
+            querySupabase('products?select=*&is_active=eq.1&order=name.asc'),
+            querySupabase('operations?select=*&order=created_at.desc'),
+            querySupabase('operation_items?select=*'),
+            querySupabase('debts?select=*&order=issue_date.desc')
+          ]);
+
+          dashboardData = computeDashboardFromSupabase(products, operations, items, debts);
+          renderDashboard();
+          return;
+        } catch (supabaseErr) {
+          console.warn('[PWA] Supabase direct query note:', supabaseErr.message);
+        }
+
+        // 2. Fallback: Local gateway API (if running on LAN)
+        let res = await fetch('/api/analytics/dashboard');
+        let data = null;
+        if (res.ok) {
+          data = await res.json();
+        } else {
+          try {
+            const altRes = await fetch(`http://${window.location.hostname}:3000/api/analytics/dashboard`);
+            if (altRes.ok) data = await altRes.json();
+          } catch(e) {}
+        }
+
+        if (data) {
+          dashboardData = data;
+          renderDashboard();
+        } else {
+          renderDashboard();
+        }
+      } catch (err) {
+        console.warn('Сервер недоступен, отображаются нулевые значения базы:', err);
+        renderDashboard();
+      } finally {
+        if (refreshIcon) setTimeout(() => refreshIcon.classList.remove('animate-spin'), 500);
+      }
+    }
+
+    // Render Dashboard UI
+    function renderDashboard() {
+      const k = dashboardData && dashboardData.kpis ? dashboardData.kpis : {
+        capitalization: 0,
+        productsCount: 0,
+        totalUnits: 0,
+        totalDebts: 0,
+        activeDebtorsCount: 0,
+        clinicExpenseMonth: 0,
+        clinicOperationsCount: 0,
+        revenueToday: { total: 0, cash: 0, cashless: 0, banks: {} }
+      };
+
+      // 1. Capitalization (Капитализация склада)
+      const elCap = document.getElementById('dash-capitalization');
+      if (elCap) elCap.innerText = formatTJS(k.capitalization);
+      const elProdCount = document.getElementById('dash-products-count');
+      if (elProdCount) elProdCount.innerText = `${k.productsCount || 0} позиций`;
+
+      // 2. Debts (Мне должны клиенты)
+      const elDebtsTotal = document.getElementById('dash-debts-total');
+      if (elDebtsTotal) elDebtsTotal.innerText = formatTJS(k.totalDebts);
+      const elDebtorsBadge = document.getElementById('dash-debtors-badge');
+      if (elDebtorsBadge) elDebtorsBadge.innerText = `${k.activeDebtorsCount || 0} должников`;
+      const elDebtsViewTotal = document.getElementById('debts-view-total');
+      if (elDebtsViewTotal) elDebtsViewTotal.innerText = `${formatTJS(k.totalDebts)} TJS`;
+
+      // 3. Clinic Expense (Расход клиники)
+      const elClinic = document.getElementById('dash-clinic-expense');
+      if (elClinic) elClinic.innerText = formatTJS(k.clinicExpenseMonth);
+      const elClinicBadge = document.getElementById('dash-clinic-badge');
+      if (elClinicBadge) elClinicBadge.innerText = `${k.clinicOperationsCount || 0} операций`;
+
+      // 4. Revenue Today (Выручка за сегодня)
+      const rev = k.revenueToday || { total: 0, cash: 0, cashless: 0, banks: {} };
+      const elRevTotal = document.getElementById('dash-today-total');
+      if (elRevTotal) elRevTotal.innerText = formatTJS(rev.total);
+      const elRevCash = document.getElementById('dash-today-cash');
+      if (elRevCash) elRevCash.innerText = formatTJS(rev.cash);
+      const elRevCashless = document.getElementById('dash-today-cashless');
+      if (elRevCashless) elRevCashless.innerText = formatTJS(rev.cashless);
+
+      // 5. Recent Activity
+      const txs = (dashboardData && dashboardData.transactions) ? dashboardData.transactions : [];
+      renderRecentTransactions(txs);
+      renderFullFeed(txs);
+    }
+
+    function renderRecentTransactions(list) {
+      const container = document.getElementById('dash-recent-list');
+      if (!container) return;
+
+      if (!list || list.length === 0) {
+        container.innerHTML = `
+          <div class="fintech-card rounded-2xl p-5 text-center text-slate-500 text-xs border border-slate-800">
+            <i data-lucide="inbox" class="w-7 h-7 text-slate-600 mx-auto mb-1.5"></i>
+            <div class="font-bold text-slate-300">В базе пока нет записей</div>
+            <p class="text-[11px] text-slate-500 mt-0.5">Операции склада появятся здесь после ввода на ПК.</p>
+          </div>
+        `;
+        lucide.createIcons();
+        return;
+      }
+      container.innerHTML = list.slice(0, 5).map(tx => renderTxCard(tx)).join('');
+      lucide.createIcons();
+    }
+
+    function renderFullFeed(list) {
+      const container = document.getElementById('transactions-feed-container');
+      if (!container) return;
+
+      let filtered = list || [];
+      if (currentFeedFilter === 'RECEIVE') filtered = filtered.filter(t => t.type === 'RECEIVE');
+      if (currentFeedFilter === 'SALE') filtered = filtered.filter(t => t.type === 'SALE' && t.paymentType !== 'DEBT');
+      if (currentFeedFilter === 'CLINIC_WRITE_OFF') filtered = filtered.filter(t => t.type === 'CLINIC_WRITE_OFF');
+      if (currentFeedFilter === 'DEBT') filtered = filtered.filter(t => t.paymentType === 'DEBT');
+
+      if (!filtered || filtered.length === 0) {
+        container.innerHTML = `
+          <div class="fintech-card rounded-2xl p-8 text-center text-slate-500 text-xs border border-slate-800">
+            <i data-lucide="inbox" class="w-8 h-8 text-slate-600 mx-auto mb-2"></i>
+            <div>Нет записей по данному фильтру</div>
+          </div>
+        `;
+        lucide.createIcons();
+        return;
+      }
+
+      container.innerHTML = filtered.map(tx => renderTxCard(tx)).join('');
+      lucide.createIcons();
+    }
+
+    function renderTxCard(tx) {
+      let icon = 'shopping-bag';
+      let iconColor = 'text-emerald-400 bg-emerald-500/15 border border-emerald-500/30';
+      let badgeLabel = tx.categoryBadge || 'Продажа';
+
+      if (tx.type === 'RECEIVE') {
+        icon = 'box';
+        iconColor = 'text-blue-400 bg-blue-500/15 border border-blue-500/30';
+        badgeLabel = 'Приход';
+      } else if (tx.type === 'CLINIC_WRITE_OFF') {
+        icon = 'hospital';
+        iconColor = 'text-sky-400 bg-sky-500/15 border border-sky-500/30';
+        badgeLabel = 'В клинику';
+      } else if (tx.paymentType === 'DEBT') {
+        icon = 'clock';
+        iconColor = 'text-amber-400 bg-amber-500/15 border border-amber-500/30';
+        badgeLabel = 'В долг';
+      } else if (tx.paymentType === 'BANK_TRANSFER') {
+        icon = 'credit-card';
+        iconColor = 'text-teal-400 bg-teal-500/15 border border-teal-500/30';
+      }
+
+      return `
+        <div class="fintech-card p-3.5 rounded-2xl border border-slate-800 flex items-center justify-between gap-3">
+          <div class="flex items-center gap-3">
+            <div class="p-2.5 rounded-xl ${iconColor}">
+              <i data-lucide="${icon}" class="w-4 h-4"></i>
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="font-bold text-xs text-white">${tx.operationCode}</span>
+                <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full ${tx.financeColor || 'bg-slate-800 text-slate-300'}">
+                  ${badgeLabel}
+                </span>
+              </div>
+              <div class="text-[11px] text-slate-400 font-medium line-clamp-1 mt-0.5">${tx.itemsSummary || 'Детали операции'}</div>
+            </div>
+          </div>
+          <div class="text-right shrink-0">
+            <div class="text-xs font-black font-mono-numbers ${tx.type === 'CLINIC_WRITE_OFF' ? 'text-sky-400' : (tx.type === 'RECEIVE' ? 'text-blue-400' : 'text-emerald-400')}">
+              ${tx.financeText || (formatTJS(tx.totalAmount) + ' TJS')}
+            </div>
+            <div class="text-[10px] text-slate-500 font-mono mt-0.5">
+              ${tx.createdAt ? new Date(tx.createdAt).toLocaleTimeString('ru-RU').slice(0, 5) : ''}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function filterFeed(type) {
+      currentFeedFilter = type;
+      document.querySelectorAll('.filter-chip').forEach(b => {
+        b.classList.remove('bg-emerald-500', 'text-slate-950');
+        b.classList.add('bg-slate-800', 'text-slate-300');
+      });
+      const active = document.getElementById(`filter-btn-${type.toLowerCase()}`);
+      if (active) {
+        active.classList.add('bg-emerald-500', 'text-slate-950');
+        active.classList.remove('bg-slate-800', 'text-slate-300');
+      }
+      renderFullFeed(dashboardData ? dashboardData.transactions : []);
+    }
+
+    function filterTransactions(type) {
+      switchView('transactions');
+      filterFeed(type);
+    }
+
+    // DEBTS MODULE
+    async function fetchDebtsData() {
+      try {
+        // 1. Primary: Direct live query to Supabase Online Database
+        try {
+          const rawDebts = await querySupabase('debts?select=*&order=issue_date.desc');
+          const now = new Date();
+          debtsData = (rawDebts || []).map(d => {
+            let isOverdue = false;
+            let daysDiff = 0;
+            if (d.due_date && d.status !== 'PAID') {
+              const dueDate = new Date(d.due_date);
+              if (now > dueDate) {
+                isOverdue = true;
+                daysDiff = Math.floor((now - dueDate) / (1000 * 60 * 60 * 24));
+              }
+            }
+            return {
+              ...d,
+              isOverdue,
+              daysOverdue: daysDiff
+            };
+          });
+          renderDebtsList();
+          return;
+        } catch (sbErr) {
+          console.warn('[PWA] Debts Supabase note:', sbErr.message);
+        }
+
+        // 2. Fallback: Local gateway API (if running on LAN)
+        let res = await fetch('/api/debts');
+        let data = null;
+        if (res.ok) {
+          data = await res.json();
+        } else {
+          try {
+            const altRes = await fetch(`http://${window.location.hostname}:3000/api/debts`);
+            if (altRes.ok) data = await altRes.json();
+          } catch(e) {}
+        }
+        debtsData = (data && data.debts) ? data.debts : [];
+        renderDebtsList();
+      } catch (err) {
+        console.warn('Дебиторы пока отсутствуют:', err);
+      }
+    }
+
+    function renderDebtsList() {
+      const container = document.getElementById('debts-list-container');
+      if (!container) return;
+
+      if (debtsData.length === 0) {
+        container.innerHTML = `
+          <div class="fintech-card rounded-2xl p-8 text-center text-slate-500 text-xs border border-slate-800">
+            <i data-lucide="user-check" class="w-8 h-8 text-slate-600 mx-auto mb-2"></i>
+            <div class="font-bold text-slate-300">Активных должников нет</div>
+            <p class="text-[11px] text-slate-500 mt-0.5">Все расчёты закрыты или база чистая.</p>
+          </div>
+        `;
+        lucide.createIcons();
+        return;
+      }
+
+      container.innerHTML = debtsData.map(d => `
+        <div class="fintech-card rounded-2xl border border-slate-800 p-4 space-y-3">
+          <div class="flex justify-between items-start">
+            <div>
+              <h3 class="font-bold text-sm text-white">${d.debtor_name}</h3>
+              <div class="text-xs text-slate-400 font-mono flex items-center gap-1.5 mt-0.5">
+                <i data-lucide="phone" class="w-3 h-3 text-slate-500"></i>
+                <a href="tel:${d.phone}" class="hover:underline">${d.phone || 'Нет номера'}</a>
+              </div>
+            </div>
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${d.status === 'PAID' ? 'bg-emerald-500/20 text-emerald-400' : (d.isOverdue ? 'bg-rose-500/20 text-rose-400 animate-pulse' : 'bg-amber-500/20 text-amber-400')}">
+              ${d.status === 'PAID' ? 'Погашен' : (d.isOverdue ? `Просрочен на ${d.daysOverdue} дн.` : 'Активный долг')}
+            </span>
+          </div>
+
+          <div class="text-xs text-slate-300 bg-slate-800/60 p-2.5 rounded-xl border border-slate-700/40">
+            <span class="text-slate-400">Товары:</span> ${d.items_summary || 'Партия медикаментов'}
+            <div class="text-[10px] text-slate-500 mt-1">
+              Взят: ${new Date(d.issue_date).toLocaleDateString('ru-RU')} ${d.due_date ? '• Срок: ' + new Date(d.due_date).toLocaleDateString('ru-RU') : ''}
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between pt-1">
+            <div>
+              <div class="text-[10px] text-slate-500 uppercase font-semibold">Остаток долга:</div>
+              <div class="text-lg font-black font-mono-numbers text-amber-400">${formatTJS(d.remaining_amount)} TJS</div>
+            </div>
+
+            <!-- Action Buttons for Owner -->
+            <div class="flex items-center gap-1.5">
+              ${d.phone ? `
+                <a href="tel:${d.phone}" class="p-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl" title="Позвонить">
+                  <i data-lucide="phone-call" class="w-4 h-4"></i>
+                </a>
+                <a href="https://wa.me/${cleanPhoneNumber(d.phone)}" target="_blank" class="p-2.5 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 rounded-xl" title="Написать в WhatsApp">
+                  <i data-lucide="message-circle" class="w-4 h-4"></i>
+                </a>
+                <a href="https://t.me/+${cleanPhoneNumber(d.phone)}" target="_blank" class="p-2.5 bg-sky-500/15 hover:bg-sky-500/25 text-sky-400 rounded-xl" title="Написать в Telegram">
+                  <i data-lucide="send" class="w-4 h-4"></i>
+                </a>
+              ` : ''}
+
+              ${d.remaining_amount > 0 ? `
+                <button onclick="openPayModal('${d.id}')" class="px-3.5 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 text-xs font-bold rounded-xl active:scale-95 transition cursor-pointer">
+                  Погасить
+                </button>
+              ` : ''}
+            </div>
+          </div>
+        </div>
+      `).join('');
+      lucide.createIcons();
+    }
+
+    // PRODUCTS CATALOG MODULE
+    async function fetchProductsData() {
+      try {
+        // 1. Primary: Direct live query to Supabase Online Database
+        try {
+          const rawProds = await querySupabase('products?select=*&is_active=eq.1&order=name.asc');
+          productsData = (rawProds || []).map(p => ({
+            ...p,
+            batch_value: Number(((Number(p.stock_quantity) || 0) * (Number(p.retail_price) || 0)).toFixed(2))
+          }));
+          renderPwaProducts();
+          return;
+        } catch (sbErr) {
+          console.warn('[PWA] Products Supabase note:', sbErr.message);
+        }
+
+        // 2. Fallback: Local gateway API (if running on LAN)
+        let res = await fetch('/api/products');
+        let data = null;
+        if (res.ok) {
+          data = await res.json();
+        } else {
+          try {
+            const altRes = await fetch(`http://${window.location.hostname}:3000/api/products`);
+            if (altRes.ok) data = await altRes.json();
+          } catch(e) {}
+        }
+        productsData = (data && data.products) ? data.products : [];
+        renderPwaProducts();
+      } catch (err) {
+        console.warn('Товары пока отсутствуют:', err);
+      }
+    }
+
+    function renderPwaProducts(filterQuery = '') {
+      const container = document.getElementById('pwa-products-container');
+      if (!container) return;
+
+      const q = (filterQuery || '').toLowerCase().trim();
+      const list = q ? productsData.filter(p => p.name.toLowerCase().includes(q) || (p.sku && p.sku.toLowerCase().includes(q))) : productsData;
+
+      if (list.length === 0) {
+        container.innerHTML = `
+          <div class="fintech-card rounded-2xl p-8 text-center text-slate-500 text-xs border border-slate-800">
+            <i data-lucide="package-open" class="w-8 h-8 text-slate-600 mx-auto mb-2"></i>
+            <div class="font-bold text-slate-300">Медикаменты не найдены</div>
+            <p class="text-[11px] text-slate-500 mt-0.5">В базе пока нет товаров. Добавьте их на компьютере склада.</p>
+          </div>
+        `;
+        lucide.createIcons();
+        return;
+      }
+
+      container.innerHTML = list.map(p => `
+        <div class="fintech-card p-3 rounded-2xl border border-slate-800 flex items-center justify-between gap-3">
+          <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-xl bg-slate-800 overflow-hidden flex items-center justify-center border border-slate-700 shrink-0">
+              ${p.photo_url ? `<img src="${p.photo_url}" class="w-full h-full object-cover">` : `<i data-lucide="pill" class="w-5 h-5 text-slate-500"></i>`}
+            </div>
+            <div>
+              <div class="font-bold text-xs text-white line-clamp-1">${p.name}</div>
+              <div class="text-[10px] text-slate-400 font-mono">${p.sku || ''} ${p.barcode ? '• ' + p.barcode : ''}</div>
+              <div class="text-[11px] font-semibold text-emerald-400 mt-0.5">
+                Остаток: <strong>${p.stock_quantity} ${p.unit}</strong>
+              </div>
+            </div>
+          </div>
+          <div class="text-right shrink-0">
+            <div class="text-xs font-black font-mono-numbers text-white">${formatTJS(p.retail_price)} TJS</div>
+            <div class="text-[10px] text-slate-400 font-mono">Партия: ${formatTJS(p.batch_value || (p.stock_quantity * p.retail_price))} TJS</div>
+          </div>
+        </div>
+      `).join('');
+      lucide.createIcons();
+    }
+
+    // REPAY DEBT MODAL
+    function openPayModal(debtId) {
+      const debt = debtsData.find(d => d.id === debtId);
+      if (!debt) return;
+      activeDebtToPay = debt;
+
+      document.getElementById('pay-modal-debtor-name').innerText = debt.debtor_name;
+      document.getElementById('pay-modal-remaining').innerText = `${formatTJS(debt.remaining_amount)} TJS`;
+      document.getElementById('pay-modal-amount').value = debt.remaining_amount;
+      document.getElementById('modal-pay-debt').classList.remove('hidden');
+    }
+
+    function closePayModal() {
+      document.getElementById('modal-pay-debt').classList.add('hidden');
+      activeDebtToPay = null;
+    }
+
+    async function submitDebtPayment() {
+      if (!activeDebtToPay) return;
+      const amount = parseFloat(document.getElementById('pay-modal-amount').value);
+      const method = document.getElementById('pay-modal-method').value;
+      const ref = document.getElementById('pay-modal-ref').value;
+
+      if (!amount || amount <= 0) {
+        alert('Введите корректную сумму погашения!');
+        return;
+      }
+
+      const newRemaining = Number((activeDebtToPay.remaining_amount - amount).toFixed(2));
+      const newStatus = newRemaining <= 0 ? 'PAID' : 'PARTIALLY_PAID';
+
+      try {
+        // 1. Direct Supabase payment registration
+        const paymentId = 'pay-pwa-' + Date.now();
+        await querySupabase('debt_payments', {
+          method: 'POST',
+          body: JSON.stringify([{
+            id: paymentId,
+            debt_id: activeDebtToPay.id,
+            amount: amount,
+            payment_method: method,
+            transaction_reference: ref || null,
+            created_at: new Date().toISOString()
+          }])
+        });
+
+        await querySupabase(`debts?id=eq.${encodeURIComponent(activeDebtToPay.id)}`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            remaining_amount: Math.max(0, newRemaining),
+            status: newStatus,
+            updated_at: new Date().toISOString()
+          })
+        });
+
+        // Also notify local desktop if reachable
+        try {
+          await fetch(`/api/debts/${activeDebtToPay.id}/pay`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ amount, payment_method: method, transaction_reference: ref }),
+            signal: AbortSignal.timeout(1200)
+          });
+        } catch(e) {}
+
+        alert('Погашение успешно зафиксировано в базе Supabase!');
+        closePayModal();
+        fetchDebtsData();
+        fetchDashboardData();
+      } catch (err) {
+        // Fallback to local desktop API
+        try {
+          const res = await fetch(`/api/debts/${activeDebtToPay.id}/pay`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              amount,
+              payment_method: method,
+              transaction_reference: ref
+            })
+          });
+
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error);
+
+          alert('Погашение успешно зафиксировано!');
+          closePayModal();
+          fetchDebtsData();
+          fetchDashboardData();
+        } catch (fallbackErr) {
+          alert('Ошибка проведения оплаты: ' + (err.message || fallbackErr.message));
+        }
+      }
+    }
+
+    function cleanPhoneNumber(phone) {
+      if (!phone) return '';
+      let cleaned = String(phone).replace(/[^\d]/g, '');
+      if (cleaned.length === 9) {
+        cleaned = '992' + cleaned;
+      }
+      return cleaned;
+    }
+
+    // SHARE REMINDER MODAL (WHATSAPP / TELEGRAM)
+    function openShareModal(debtId) {
+      const debt = debtsData.find(d => d.id === debtId);
+      if (!debt) return;
+      const cleanPhone = cleanPhoneNumber(debt.phone);
+
+      document.getElementById('share-modal-debtor').innerText = `${debt.debtor_name} (${debt.phone || 'без номера'})`;
+      document.getElementById('share-btn-wa').href = `https://wa.me/${cleanPhone}`;
+      document.getElementById('share-btn-tg').href = `https://t.me/+${cleanPhone}`;
+
+      document.getElementById('modal-share-reminder').classList.remove('hidden');
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function closeShareModal() {
+      document.getElementById('modal-share-reminder').classList.add('hidden');
+    }
+  </script>
+</body>
+</html>

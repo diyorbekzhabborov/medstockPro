@@ -522,9 +522,9 @@
 
         <div class="pt-2 border-t border-slate-800 space-y-2 text-left text-xs">
           <div class="flex justify-between items-center p-3 bg-slate-800/60 rounded-2xl border border-slate-700/50">
-            <span class="text-slate-400 font-medium">Статус онлайн-базы Supabase:</span>
-            <span class="font-bold text-emerald-400 flex items-center gap-1.5">
-              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Подключено
+            <span class="text-slate-400 font-medium">Онлайн-база:</span>
+            <span class="font-bold text-emerald-400 flex items-center gap-1.5 font-mono text-[11px]">
+              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Supabase (PostgreSQL)
             </span>
           </div>
           <div class="flex justify-between items-center p-3 bg-slate-800/60 rounded-2xl border border-slate-700/50">
@@ -977,12 +977,182 @@
       lucide.createIcons();
     }
 
+    // ====================================================================
+    // SUPABASE ONLINE DATABASE CLIENT & SYNC LAYER
+    // ====================================================================
+    const SUPABASE_CONFIG = {
+      url: 'https://mljkzfoghenkawgnesoc.supabase.co',
+      key: 'sb_publishable_n6VJcDu1klU7OZfW6_x8bw_gis2V45G'
+    };
+
+    async function querySupabase(endpoint, options = {}) {
+      const url = `${SUPABASE_CONFIG.url}/rest/v1/${endpoint}`;
+      const headers = {
+        'apikey': SUPABASE_CONFIG.key,
+        'Authorization': `Bearer ${SUPABASE_CONFIG.key}`,
+        'Content-Type': 'application/json',
+        ...(options.headers || {})
+      };
+      const res = await fetch(url, { ...options, headers });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`Supabase [${res.status}]: ${text}`);
+      }
+      if (res.status === 204) return null;
+      return await res.json();
+    }
+
+    function isSameDay(d1, d2) {
+      return d1.getFullYear() === d2.getFullYear() &&
+             d1.getMonth() === d2.getMonth() &&
+             d1.getDate() === d2.getDate();
+    }
+
+    function isSameMonth(d1, d2) {
+      return d1.getFullYear() === d2.getFullYear() &&
+             d1.getMonth() === d2.getMonth();
+    }
+
+    function computeDashboardFromSupabase(products, operations, items, debts) {
+      const now = new Date();
+      
+      // 1. Capitalization
+      let capitalization = 0;
+      let totalUnits = 0;
+      (products || []).forEach(p => {
+        const qty = Number(p.stock_quantity) || 0;
+        const price = Number(p.retail_price) || 0;
+        capitalization += qty * price;
+        totalUnits += qty;
+      });
+
+      // 2. Debts
+      let totalDebts = 0;
+      let activeDebtorsCount = 0;
+      (debts || []).forEach(d => {
+        if (d.status !== 'PAID') {
+          totalDebts += Number(d.remaining_amount) || 0;
+          activeDebtorsCount += 1;
+        }
+      });
+
+      // Map items by operation_id
+      const itemsByOp = {};
+      (items || []).forEach(it => {
+        if (!itemsByOp[it.operation_id]) itemsByOp[it.operation_id] = [];
+        itemsByOp[it.operation_id].push(it);
+      });
+
+      // 3. Clinic Expense this month
+      let clinicExpenseMonth = 0;
+      let clinicOperationsCount = 0;
+
+      // 4. Revenue Today
+      const revenueToday = {
+        total: 0,
+        cash: 0,
+        cashless: 0,
+        banks: {
+          'Dushanbe City (DC)': 0,
+          'Банк Эсхата': 0,
+          'Алиф Банк / Alif Mobi': 0,
+          'Амонатбонк / Другой банк': 0
+        }
+      };
+
+      const transactions = [];
+
+      (operations || []).forEach(op => {
+        const opDate = new Date(op.created_at);
+        const opItems = itemsByOp[op.id] || [];
+        const amount = Number(op.total_amount) || 0;
+
+        // Clinic write-off this month
+        if (op.type === 'CLINIC_WRITE_OFF' && isSameMonth(opDate, now)) {
+          clinicOperationsCount += 1;
+          const opItemCost = opItems.reduce((s, it) => s + (Number(it.quantity) * Number(it.unit_price)), 0);
+          clinicExpenseMonth += opItemCost;
+        }
+
+        // Revenue today
+        if (op.type === 'SALE' && isSameDay(opDate, now)) {
+          revenueToday.total += amount;
+          if (op.payment_type === 'CASH') {
+            revenueToday.cash += amount;
+          } else if (op.payment_type === 'BANK_TRANSFER') {
+            revenueToday.cashless += amount;
+            const b = op.bank_name || 'Dushanbe City (DC)';
+            if (!revenueToday.banks[b]) revenueToday.banks[b] = 0;
+            revenueToday.banks[b] += amount;
+          }
+        }
+
+        const summary = opItems.length > 0 
+          ? opItems.map(it => `${it.product_name} (${it.quantity} шт.)`).join(', ')
+          : (op.notes || 'Операция склада');
+
+        transactions.push({
+          id: op.id,
+          operationCode: op.operation_code,
+          type: op.type,
+          paymentType: op.payment_type,
+          bankName: op.bank_name,
+          totalAmount: amount,
+          counterpartyName: op.counterparty_name,
+          counterpartyPhone: op.counterparty_phone,
+          status: op.status,
+          createdAt: op.created_at,
+          items: opItems,
+          itemsSummary: summary,
+          categoryBadge: op.type === 'SALE' 
+            ? (op.payment_type === 'DEBT' ? 'Долг' : 'Продажа') 
+            : (op.type === 'CLINIC_WRITE_OFF' ? 'Расход клиники' : 'Приход')
+        });
+      });
+
+      return {
+        kpis: {
+          capitalization: Number(capitalization.toFixed(2)),
+          productsCount: (products || []).length,
+          totalUnits,
+          totalDebts: Number(totalDebts.toFixed(2)),
+          activeDebtorsCount,
+          clinicExpenseMonth: Number(clinicExpenseMonth.toFixed(2)),
+          clinicOperationsCount,
+          revenueToday: {
+            total: Number(revenueToday.total.toFixed(2)),
+            cash: Number(revenueToday.cash.toFixed(2)),
+            cashless: Number(revenueToday.cashless.toFixed(2)),
+            banks: revenueToday.banks
+          }
+        },
+        transactions
+      };
+    }
+
     // Fetch Dashboard Analytics
     async function fetchDashboardData() {
       const refreshIcon = document.getElementById('refresh-icon');
       if (refreshIcon) refreshIcon.classList.add('animate-spin');
 
       try {
+        // 1. Primary: Direct query to Supabase Online Database
+        try {
+          const [products, operations, items, debts] = await Promise.all([
+            querySupabase('products?select=*&is_active=eq.1&order=name.asc'),
+            querySupabase('operations?select=*&order=created_at.desc'),
+            querySupabase('operation_items?select=*'),
+            querySupabase('debts?select=*&order=issue_date.desc')
+          ]);
+
+          dashboardData = computeDashboardFromSupabase(products, operations, items, debts);
+          renderDashboard();
+          return;
+        } catch (supabaseErr) {
+          console.warn('[PWA] Supabase direct query note:', supabaseErr.message);
+        }
+
+        // 2. Fallback: Local gateway API (if running on LAN)
         let res = await fetch('/api/analytics/dashboard');
         let data = null;
         if (res.ok) {
@@ -1001,14 +1171,6 @@
           renderDashboard();
         }
       } catch (err) {
-        try {
-          const altRes = await fetch(`http://${window.location.hostname}:3000/api/analytics/dashboard`);
-          if (altRes.ok) {
-            dashboardData = await altRes.json();
-            renderDashboard();
-            return;
-          }
-        } catch(e) {}
         console.warn('Сервер недоступен, отображаются нулевые значения базы:', err);
         renderDashboard();
       } finally {
@@ -1180,6 +1342,33 @@
     // DEBTS MODULE
     async function fetchDebtsData() {
       try {
+        // 1. Primary: Direct live query to Supabase Online Database
+        try {
+          const rawDebts = await querySupabase('debts?select=*&order=issue_date.desc');
+          const now = new Date();
+          debtsData = (rawDebts || []).map(d => {
+            let isOverdue = false;
+            let daysDiff = 0;
+            if (d.due_date && d.status !== 'PAID') {
+              const dueDate = new Date(d.due_date);
+              if (now > dueDate) {
+                isOverdue = true;
+                daysDiff = Math.floor((now - dueDate) / (1000 * 60 * 60 * 24));
+              }
+            }
+            return {
+              ...d,
+              isOverdue,
+              daysOverdue: daysDiff
+            };
+          });
+          renderDebtsList();
+          return;
+        } catch (sbErr) {
+          console.warn('[PWA] Debts Supabase note:', sbErr.message);
+        }
+
+        // 2. Fallback: Local gateway API (if running on LAN)
         let res = await fetch('/api/debts');
         let data = null;
         if (res.ok) {
@@ -1193,15 +1382,6 @@
         debtsData = (data && data.debts) ? data.debts : [];
         renderDebtsList();
       } catch (err) {
-        try {
-          const altRes = await fetch(`http://${window.location.hostname}:3000/api/debts`);
-          if (altRes.ok) {
-            const data = await altRes.json();
-            debtsData = data.debts || [];
-            renderDebtsList();
-            return;
-          }
-        } catch(e) {}
         console.warn('Дебиторы пока отсутствуют:', err);
       }
     }
@@ -1279,6 +1459,20 @@
     // PRODUCTS CATALOG MODULE
     async function fetchProductsData() {
       try {
+        // 1. Primary: Direct live query to Supabase Online Database
+        try {
+          const rawProds = await querySupabase('products?select=*&is_active=eq.1&order=name.asc');
+          productsData = (rawProds || []).map(p => ({
+            ...p,
+            batch_value: Number(((Number(p.stock_quantity) || 0) * (Number(p.retail_price) || 0)).toFixed(2))
+          }));
+          renderPwaProducts();
+          return;
+        } catch (sbErr) {
+          console.warn('[PWA] Products Supabase note:', sbErr.message);
+        }
+
+        // 2. Fallback: Local gateway API (if running on LAN)
         let res = await fetch('/api/products');
         let data = null;
         if (res.ok) {
@@ -1292,15 +1486,6 @@
         productsData = (data && data.products) ? data.products : [];
         renderPwaProducts();
       } catch (err) {
-        try {
-          const altRes = await fetch(`http://${window.location.hostname}:3000/api/products`);
-          if (altRes.ok) {
-            const data = await altRes.json();
-            productsData = data.products || [];
-            renderPwaProducts();
-            return;
-          }
-        } catch(e) {}
         console.warn('Товары пока отсутствуют:', err);
       }
     }
@@ -1375,26 +1560,70 @@
         return;
       }
 
+      const newRemaining = Number((activeDebtToPay.remaining_amount - amount).toFixed(2));
+      const newStatus = newRemaining <= 0 ? 'PAID' : 'PARTIALLY_PAID';
+
       try {
-        const res = await fetch(`/api/debts/${activeDebtToPay.id}/pay`, {
+        // 1. Direct Supabase payment registration
+        const paymentId = 'pay-pwa-' + Date.now();
+        await querySupabase('debt_payments', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            amount,
+          body: JSON.stringify([{
+            id: paymentId,
+            debt_id: activeDebtToPay.id,
+            amount: amount,
             payment_method: method,
-            transaction_reference: ref
+            transaction_reference: ref || null,
+            created_at: new Date().toISOString()
+          }])
+        });
+
+        await querySupabase(`debts?id=eq.${encodeURIComponent(activeDebtToPay.id)}`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            remaining_amount: Math.max(0, newRemaining),
+            status: newStatus,
+            updated_at: new Date().toISOString()
           })
         });
 
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error);
+        // Also notify local desktop if reachable
+        try {
+          await fetch(`/api/debts/${activeDebtToPay.id}/pay`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ amount, payment_method: method, transaction_reference: ref }),
+            signal: AbortSignal.timeout(1200)
+          });
+        } catch(e) {}
 
-        alert('Погашение успешно зафиксировано!');
+        alert('Погашение успешно зафиксировано в базе Supabase!');
         closePayModal();
         fetchDebtsData();
         fetchDashboardData();
       } catch (err) {
-        alert('Ошибка: ' + err.message);
+        // Fallback to local desktop API
+        try {
+          const res = await fetch(`/api/debts/${activeDebtToPay.id}/pay`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              amount,
+              payment_method: method,
+              transaction_reference: ref
+            })
+          });
+
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error);
+
+          alert('Погашение успешно зафиксировано!');
+          closePayModal();
+          fetchDebtsData();
+          fetchDashboardData();
+        } catch (fallbackErr) {
+          alert('Ошибка проведения оплаты: ' + (err.message || fallbackErr.message));
+        }
       }
     }
 

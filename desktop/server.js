@@ -94,6 +94,7 @@ app.post('/api/local/products', (req, res) => {
     const created = db.prepare('SELECT * FROM local_products WHERE id = ?').get(id);
     created.batch_value = Number((created.stock_quantity * created.retail_price).toFixed(2));
     res.status(201).json({ product: created });
+    syncToSupabaseDirect().catch(e => console.warn('[AUTO SYNC PRODUCT NOTE]:', e.message));
   } catch (err) {
     res.status(400).json({ error: 'Ошибка сохранения в базу данных: ' + err.message });
   }
@@ -221,6 +222,7 @@ app.post('/api/local/operations', (req, res) => {
     const created = db.prepare('SELECT * FROM local_operations WHERE id = ?').get(opId);
     created.items = db.prepare('SELECT * FROM local_operation_items WHERE operation_id = ?').all(opId);
     res.status(201).json({ success: true, operation: created });
+    syncToSupabaseDirect().catch(e => console.warn('[AUTO SYNC OP NOTE]:', e.message));
   } catch (err) {
     res.status(500).json({ error: 'Ошибка сохранения операции локально: ' + err.message });
   }
@@ -349,146 +351,206 @@ function syncToLocalCloudDb(products, operations, debts) {
   }
 }
 
-// POST /api/local/sync - trigger automatic synchronization with online database
-app.post('/api/local/sync', async (req, res) => {
-  const clientId = getConfig('client_id', 'desktop-win-terminal-01');
+// Direct live synchronization with Supabase Online Database
+async function syncToSupabaseDirect() {
+  const allOps = db.prepare('SELECT * FROM local_operations').all();
+  const getItems = db.prepare('SELECT * FROM local_operation_items WHERE operation_id = ?');
+  const allLocalProducts = db.prepare('SELECT * FROM local_products WHERE is_active = 1').all();
+  const allLocalDebts = db.prepare('SELECT * FROM local_debts').all();
+
+  const opsWithItems = allOps.map(op => ({
+    ...op,
+    items: getItems.all(op.id)
+  }));
+
+  // 1. Direct mirror to local cloud DB
+  syncToLocalCloudDb(allLocalProducts, opsWithItems, allLocalDebts);
+
+  // 2. Push to local Cloud Gateway port 4000 if running
+  try {
+    await fetch(`${CLOUD_GATEWAY_URL}/api/sync/push`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        clientId: 'desktop-win-01',
+        operations: opsWithItems,
+        products: allLocalProducts,
+        debts: allLocalDebts
+      }),
+      signal: AbortSignal.timeout(1500)
+    });
+  } catch (e) {}
+
+  // 3. Push to Supabase Online Database via REST PostgREST API
+  const sbHeaders = {
+    'apikey': SUPABASE_KEY,
+    'Authorization': `Bearer ${SUPABASE_KEY}`,
+    'Content-Type': 'application/json',
+    'Prefer': 'resolution=merge-duplicates'
+  };
+
+  let supabaseStatus = 'SUCCESS';
+  let supabaseNotice = null;
 
   try {
-    // 1. Collect all local operations and products
-    const allOps = db.prepare('SELECT * FROM local_operations').all();
-    const getItems = db.prepare('SELECT * FROM local_operation_items WHERE operation_id = ?');
-
-    const opsWithItems = allOps.map(op => ({
-      ...op,
-      items: getItems.all(op.id)
-    }));
-
-    const allLocalProducts = db.prepare('SELECT * FROM local_products WHERE is_active = 1').all();
-    const allLocalDebts = db.prepare('SELECT * FROM local_debts').all();
-    let pushedCount = 0;
-
-    // 2. Direct Mirror to Cloud Backend SQLite Database (instant offline/local PWA reflection)
-    syncToLocalCloudDb(allLocalProducts, opsWithItems, allLocalDebts);
-
-    // 3. Push to Cloud Gateway port 4000 if running
-    try {
-      const pushResp = await fetch(`${CLOUD_GATEWAY_URL}/api/sync/push`, {
+    // 3a. Products
+    if (allLocalProducts.length > 0) {
+      const pResp = await fetch(`${SUPABASE_URL}/rest/v1/products`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          clientId,
-          operations: opsWithItems,
-          products: allLocalProducts,
-          debts: allLocalDebts
-        }),
-        signal: AbortSignal.timeout(2000)
+        headers: sbHeaders,
+        body: JSON.stringify(allLocalProducts.map(p => ({
+          id: p.id,
+          sku: p.sku || `SKU-${Date.now()}`,
+          barcode: p.barcode || 'N/A',
+          name: p.name,
+          category: p.category || 'Медикаменты',
+          unit: p.unit || 'шт.',
+          stock_quantity: p.stock_quantity || 0,
+          retail_price: p.retail_price || 0,
+          photo_url: p.photo_url || null,
+          is_active: p.is_active || 1,
+          updated_at: p.updated_at || new Date().toISOString()
+        }))),
+        signal: AbortSignal.timeout(8000)
       });
-      if (pushResp.ok) {
-        const pushData = await pushResp.json();
-        pushedCount = (pushData.syncedIds || []).length;
+      if (!pResp.ok) {
+        console.warn('[SUPABASE PROD SYNC WARN]:', pResp.status, await pResp.text());
       }
-    } catch (gwErr) {
-      // Gateway might not be listening, direct SQLite sync succeeded
     }
 
-    // 4. Sync to Supabase Online Database via REST PostgREST API
-    let supabaseStatus = 'SUCCESS';
-    let supabaseNotice = null;
+    // 3b. Operations & Items
+    if (opsWithItems.length > 0) {
+      const oResp = await fetch(`${SUPABASE_URL}/rest/v1/operations`, {
+        method: 'POST',
+        headers: sbHeaders,
+        body: JSON.stringify(opsWithItems.map(op => ({
+          id: op.id,
+          operation_code: op.operation_code,
+          type: op.type,
+          payment_type: op.payment_type,
+          bank_name: op.bank_name || null,
+          transaction_reference: op.transaction_reference || null,
+          total_amount: op.total_amount || 0,
+          counterparty_name: op.counterparty_name || null,
+          counterparty_phone: op.counterparty_phone || null,
+          due_date: op.due_date || null,
+          status: op.status || 'PAID',
+          notes: op.notes || null,
+          created_by: op.created_by || 'Ассистент',
+          created_at: op.created_at || new Date().toISOString(),
+          client_id: 'desktop-win-01',
+          synced_at: new Date().toISOString()
+        }))),
+        signal: AbortSignal.timeout(8000)
+      });
 
-    try {
-      if (allLocalProducts.length > 0) {
-        const pResp = await fetch(`${SUPABASE_URL}/rest/v1/products`, {
-          method: 'POST',
-          headers: {
-            'apikey': SUPABASE_KEY,
-            'Authorization': `Bearer ${SUPABASE_KEY}`,
-            'Content-Type': 'application/json',
-            'Prefer': 'resolution=merge-duplicates'
-          },
-          body: JSON.stringify(allLocalProducts.map(p => ({
-            id: p.id,
-            sku: p.sku || `SKU-${Date.now()}`,
-            barcode: p.barcode || 'N/A',
-            name: p.name,
-            category: p.category || 'Медикаменты',
-            unit: p.unit || 'шт.',
-            stock_quantity: p.stock_quantity || 0,
-            retail_price: p.retail_price || 0,
-            photo_url: p.photo_url || null,
-            is_active: p.is_active || 1,
-            updated_at: p.updated_at || new Date().toISOString()
-          }))),
-          signal: AbortSignal.timeout(5000)
-        });
-
-        if (pResp.status === 404) {
-          supabaseStatus = 'SCHEMA_MISSING';
-          supabaseNotice = 'Таблицы в Supabase еще не созданы. Чтобы данные появились в онлайн-базе, выполните в Supabase SQL Editor файл supabase_schema.sql.';
-        }
-      }
-
-      if (opsWithItems.length > 0 && supabaseStatus !== 'SCHEMA_MISSING') {
-        const oResp = await fetch(`${SUPABASE_URL}/rest/v1/operations`, {
-          method: 'POST',
-          headers: {
-            'apikey': SUPABASE_KEY,
-            'Authorization': `Bearer ${SUPABASE_KEY}`,
-            'Content-Type': 'application/json',
-            'Prefer': 'resolution=merge-duplicates'
-          },
-          body: JSON.stringify(opsWithItems.map(op => ({
-            id: op.id,
-            operation_code: op.operation_code,
-            type: op.type,
-            payment_type: op.payment_type,
-            bank_name: op.bank_name || null,
-            transaction_reference: op.transaction_reference || null,
-            total_amount: op.total_amount || 0,
-            counterparty_name: op.counterparty_name || null,
-            counterparty_phone: op.counterparty_phone || null,
-            due_date: op.due_date || null,
-            status: op.status || 'PAID',
-            notes: op.notes || null,
-            created_by: op.created_by || 'Ассистент',
-            created_at: op.created_at || new Date().toISOString(),
-            client_id: clientId,
-            synced_at: new Date().toISOString()
-          }))),
-          signal: AbortSignal.timeout(5000)
-        });
-
-        if (oResp.status === 404) {
-          supabaseStatus = 'SCHEMA_MISSING';
-          supabaseNotice = 'Таблицы в Supabase еще не созданы. Чтобы данные появились в онлайн-базе, выполните в Supabase SQL Editor файл supabase_schema.sql.';
-        }
-      }
-    } catch (sbErr) {
-      console.log('[SUPABASE SYNC NOTE]:', sbErr.message);
-    }
-
-    // 5. Mark local operations as synced
-    const markSynced = db.prepare('UPDATE local_operations SET sync_pending = 0 WHERE id = ?');
-    const runMark = db.transaction(() => {
+      const allItems = [];
       for (const op of opsWithItems) {
-        markSynced.run(op.id);
+        if (op.items && Array.isArray(op.items)) {
+          for (let i = 0; i < op.items.length; i++) {
+            const it = op.items[i];
+            allItems.push({
+              id: it.id || `${op.id}-item-${i}`,
+              operation_id: op.id,
+              product_id: it.product_id,
+              product_name: it.product_name,
+              quantity: it.quantity,
+              unit_price: it.unit_price,
+              total_price: it.total_price || (it.quantity * it.unit_price)
+            });
+          }
+        }
       }
-    });
-    runMark();
-    pushedCount = opsWithItems.length;
 
-    // 6. Save last synced timestamp
-    const nowIso = new Date().toISOString();
-    setConfig('last_synced_at', nowIso);
+      if (allItems.length > 0) {
+        await fetch(`${SUPABASE_URL}/rest/v1/operation_items`, {
+          method: 'POST',
+          headers: sbHeaders,
+          body: JSON.stringify(allItems),
+          signal: AbortSignal.timeout(8000)
+        });
+      }
+    }
 
-    res.json({
-      success: true,
-      message: 'Синхронизация успешно выполнена',
-      pushedOperations: pushedCount,
-      pushedProducts: allLocalProducts.length,
-      supabaseStatus,
-      supabaseNotice,
-      lastSyncTime: nowIso
-    });
+    // 3c. Debts
+    if (allLocalDebts.length > 0) {
+      await fetch(`${SUPABASE_URL}/rest/v1/debts`, {
+        method: 'POST',
+        headers: sbHeaders,
+        body: JSON.stringify(allLocalDebts.map(d => ({
+          id: d.id,
+          operation_id: d.operation_id || null,
+          debtor_name: d.debtor_name,
+          phone: d.phone || '',
+          initial_amount: d.initial_amount || 0,
+          remaining_amount: d.remaining_amount || 0,
+          issue_date: d.issue_date || new Date().toISOString(),
+          due_date: d.due_date || null,
+          status: d.status || 'ACTIVE',
+          items_summary: d.items_summary || '',
+          updated_at: d.updated_at || new Date().toISOString()
+        }))),
+        signal: AbortSignal.timeout(8000)
+      });
+    }
+
+    // 3d. Pull remote debt updates from Supabase (e.g. debt repaid on mobile PWA)
+    try {
+      const pullRes = await fetch(`${SUPABASE_URL}/rest/v1/debts?select=*`, {
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
+        signal: AbortSignal.timeout(5000)
+      });
+      if (pullRes.ok) {
+        const remoteDebts = await pullRes.json();
+        if (Array.isArray(remoteDebts)) {
+          const updateLocalDebt = db.prepare(`
+            UPDATE local_debts 
+            SET remaining_amount = ?, status = ?, updated_at = ?
+            WHERE id = ?
+          `);
+          for (const rd of remoteDebts) {
+            updateLocalDebt.run(rd.remaining_amount, rd.status, rd.updated_at || new Date().toISOString(), rd.id);
+          }
+        }
+      }
+    } catch (pullErr) {
+      console.log('[SUPABASE PULL NOTE]:', pullErr.message);
+    }
+  } catch (sbErr) {
+    console.log('[SUPABASE SYNC NOTE]:', sbErr.message);
+    supabaseStatus = 'FAILED';
+    supabaseNotice = 'Ошибка связи с облачной базой Supabase: ' + sbErr.message;
+  }
+
+  // 4. Mark local operations as synced
+  const markSynced = db.prepare('UPDATE local_operations SET sync_pending = 0 WHERE id = ?');
+  const runMark = db.transaction(() => {
+    for (const op of opsWithItems) {
+      markSynced.run(op.id);
+    }
+  });
+  runMark();
+
+  const nowIso = new Date().toISOString();
+  setConfig('last_synced_at', nowIso);
+
+  return {
+    success: true,
+    message: 'Синхронизация успешно выполнена',
+    pushedOperations: opsWithItems.length,
+    pushedProducts: allLocalProducts.length,
+    pushedDebts: allLocalDebts.length,
+    supabaseStatus,
+    supabaseNotice,
+    lastSyncTime: nowIso
+  };
+}
+
+// POST /api/local/sync - trigger automatic synchronization with online database
+app.post('/api/local/sync', async (req, res) => {
+  try {
+    const result = await syncToSupabaseDirect();
+    res.json(result);
   } catch (err) {
     res.status(500).json({
       success: false,

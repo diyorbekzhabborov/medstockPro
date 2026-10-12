@@ -920,6 +920,49 @@
       renderCart();
     }
 
+    function onCartQtyInput(productId, valStr) {
+      const item = cart.find(c => c.product_id === productId);
+      if (!item) return;
+      let val = parseInt(valStr, 10);
+      if (isNaN(val) || val < 1) return;
+      if (val > item.max_stock) {
+        val = item.max_stock;
+        const input = document.getElementById(`cart-qty-input-${productId}`);
+        if (input) input.value = val;
+        alert(`Максимальный доступный остаток: ${item.max_stock} шт.`);
+      }
+      item.quantity = val;
+      updateCartTotalsOnly();
+    }
+
+    function onCartQtyChange(productId, valStr) {
+      const item = cart.find(c => c.product_id === productId);
+      if (!item) return;
+      let val = parseInt(valStr, 10);
+      if (isNaN(val) || val < 1) {
+        val = 1;
+      }
+      if (val > item.max_stock) {
+        val = item.max_stock;
+      }
+      item.quantity = val;
+      renderCart();
+    }
+
+    function updateCartTotalsOnly() {
+      let total = 0;
+      cart.forEach(item => {
+        const lineTotal = item.quantity * item.unit_price;
+        total += lineTotal;
+        const lineTotalEl = document.getElementById(`cart-line-total-${item.product_id}`);
+        if (lineTotalEl) lineTotalEl.innerText = lineTotal.toFixed(2);
+        const lineSubEl = document.getElementById(`cart-line-sub-${item.product_id}`);
+        if (lineSubEl) lineSubEl.innerText = `${item.unit_price.toFixed(2)} TJS × ${item.quantity} ${item.unit}`;
+      });
+      const totalAmountEl = document.getElementById('pos-total-amount');
+      if (totalAmountEl) totalAmountEl.innerText = total.toFixed(2);
+    }
+
     function clearCart() {
       cart = [];
       renderCart();
@@ -947,19 +990,24 @@
         const lineTotal = item.quantity * item.unit_price;
         total += lineTotal;
         return `
-          <div class="py-2.5 flex items-center justify-between text-xs">
+          <div class="py-2.5 flex items-center justify-between text-xs border-b border-slate-100 last:border-b-0">
             <div class="flex-1 pr-2">
               <div class="font-bold text-slate-800">${item.product_name}</div>
-              <div class="text-[11px] text-slate-500 font-mono">${item.unit_price.toFixed(2)} TJS × ${item.quantity} ${item.unit}</div>
+              <div id="cart-line-sub-${item.product_id}" class="text-[11px] text-slate-500 font-mono">${item.unit_price.toFixed(2)} TJS × ${item.quantity} ${item.unit}</div>
             </div>
             <div class="flex items-center gap-2">
-              <div class="flex items-center border border-slate-200 rounded-lg overflow-hidden bg-slate-50">
-                <button onclick="updateCartQty('${item.product_id}', -1)" class="px-2 py-1 text-slate-600 hover:bg-slate-200 font-bold">-</button>
-                <span class="px-2 font-mono-numbers font-bold text-slate-800">${item.quantity}</span>
-                <button onclick="updateCartQty('${item.product_id}', 1)" class="px-2 py-1 text-slate-600 hover:bg-slate-200 font-bold">+</button>
+              <div class="flex items-center border border-slate-300 rounded-lg overflow-hidden bg-white shadow-xs">
+                <button type="button" onclick="updateCartQty('${item.product_id}', -1)" class="px-2.5 py-1 text-slate-600 hover:bg-slate-100 font-bold text-sm select-none cursor-pointer">-</button>
+                <input type="number" min="1" max="${item.max_stock}" value="${item.quantity}"
+                       id="cart-qty-input-${item.product_id}"
+                       onfocus="this.select()"
+                       oninput="onCartQtyInput('${item.product_id}', this.value)"
+                       onchange="onCartQtyChange('${item.product_id}', this.value)"
+                       class="w-14 text-center font-mono-numbers font-bold text-xs text-slate-900 bg-slate-50 border-x border-slate-200 py-1 focus:bg-white focus:outline-none focus:ring-1 focus:ring-sky-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none">
+                <button type="button" onclick="updateCartQty('${item.product_id}', 1)" class="px-2.5 py-1 text-slate-600 hover:bg-slate-100 font-bold text-sm select-none cursor-pointer">+</button>
               </div>
-              <div class="font-bold font-mono-numbers text-slate-900 w-16 text-right">${lineTotal.toFixed(2)}</div>
-              <button onclick="removeFromCart('${item.product_id}')" class="text-slate-300 hover:text-rose-500 p-1">
+              <div id="cart-line-total-${item.product_id}" class="font-bold font-mono-numbers text-slate-900 w-16 text-right">${lineTotal.toFixed(2)}</div>
+              <button onclick="removeFromCart('${item.product_id}')" class="text-slate-300 hover:text-rose-500 p-1 cursor-pointer">
                 <i data-lucide="x" class="w-3.5 h-3.5"></i>
               </button>
             </div>
@@ -1554,12 +1602,16 @@
         const data = await res.json();
 
         if (data.success) {
-          alert(`Синхронизация с онлайн-базой успешно выполнена!\n\nОтправлено операций: ${data.pushedOperations || 0}\nСинхронизировано товаров: ${data.pushedProducts || 0}\n\nВладелец теперь видит актуальные данные в телефоне.`);
+          let msg = `Синхронизация успешно выполнена!\n\nТоваров синхронизировано: ${data.pushedProducts || 0}\nОпераций: ${data.pushedOperations || 0}\n\nДанные сразу доступны в мобильном приложении.`;
+          if (data.supabaseNotice) {
+            msg += `\n\n${data.supabaseNotice}`;
+          }
+          alert(msg);
           checkSyncStatus();
           loadProducts();
           if (!document.getElementById('tab-content-history').classList.contains('hidden')) loadOperations();
         } else {
-          alert('Внимание: Онлайн-база временно недоступна. Все данные сохранены локально на компьютере и будут отправлены при следующем нажатии синхронизации.');
+          alert('Внимание: ' + (data.error || 'Ошибка синхронизации'));
         }
       } catch (err) {
         alert('Ошибка при попытке синхронизации: ' + err.message);

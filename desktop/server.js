@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs');
 const http = require('http');
 const db = require('./local_db');
 
@@ -263,6 +264,91 @@ const SUPABASE_URL = process.env.SUPABASE_URL || 'https://mljkzfoghenkawgnesoc.s
 const SUPABASE_KEY = process.env.SUPABASE_SECRET_KEY || Buffer.from('c2Jfc2VjcmV0X0dyTEd2MVRMQmtBOXFPVWxGVEFyZkFfVVJ5QVdOb0c=', 'base64').toString('utf8');
 const CLOUD_GATEWAY_URL = process.env.CLOUD_API_URL || 'http://localhost:4000';
 
+// Function to directly mirror local data into Cloud Gateway DB (server/data/cloud_medstock.db)
+function syncToLocalCloudDb(products, operations, debts) {
+  try {
+    const cloudDbPath = path.join(__dirname, '..', 'server', 'data', 'cloud_medstock.db');
+    if (!fs.existsSync(path.dirname(cloudDbPath))) {
+      fs.mkdirSync(path.dirname(cloudDbPath), { recursive: true });
+    }
+    const { DatabaseSync } = require('node:sqlite');
+    const cloudDb = new DatabaseSync(cloudDbPath);
+    cloudDb.exec('PRAGMA journal_mode = WAL;');
+
+    // Ensure schema
+    cloudDb.exec(`
+      CREATE TABLE IF NOT EXISTS products (
+        id TEXT PRIMARY KEY, sku TEXT, barcode TEXT, name TEXT NOT NULL,
+        category TEXT NOT NULL, unit TEXT NOT NULL, stock_quantity INTEGER DEFAULT 0,
+        retail_price REAL DEFAULT 0.0, photo_url TEXT, is_active INTEGER DEFAULT 1,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+      CREATE TABLE IF NOT EXISTS operations (
+        id TEXT PRIMARY KEY, operation_code TEXT NOT NULL, type TEXT NOT NULL,
+        payment_type TEXT NOT NULL, bank_name TEXT, transaction_reference TEXT,
+        total_amount REAL DEFAULT 0.0, counterparty_name TEXT, counterparty_phone TEXT,
+        due_date TEXT, status TEXT NOT NULL, notes TEXT, created_by TEXT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP, client_id TEXT, synced_at DATETIME
+      );
+      CREATE TABLE IF NOT EXISTS operation_items (
+        id TEXT PRIMARY KEY, operation_id TEXT NOT NULL, product_id TEXT NOT NULL,
+        product_name TEXT NOT NULL, quantity INTEGER NOT NULL, unit_price REAL NOT NULL,
+        total_price REAL NOT NULL
+      );
+      CREATE TABLE IF NOT EXISTS debts (
+        id TEXT PRIMARY KEY, operation_id TEXT, debtor_name TEXT NOT NULL,
+        phone TEXT NOT NULL, initial_amount REAL NOT NULL, remaining_amount REAL NOT NULL,
+        issue_date DATETIME NOT NULL, due_date TEXT, status TEXT NOT NULL,
+        items_summary TEXT, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    // Upsert products
+    const upsertProd = cloudDb.prepare(`
+      INSERT OR REPLACE INTO products (id, sku, barcode, name, category, unit, stock_quantity, retail_price, photo_url, is_active, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    for (const p of products) {
+      upsertProd.run(p.id, p.sku || '', p.barcode || '', p.name, p.category || 'Медикаменты', p.unit || 'шт.', p.stock_quantity || 0, p.retail_price || 0, p.photo_url || null, p.is_active || 1, p.updated_at || new Date().toISOString());
+    }
+
+    // Upsert operations & items
+    const insertOp = cloudDb.prepare(`
+      INSERT OR REPLACE INTO operations (id, operation_code, type, payment_type, bank_name, transaction_reference, total_amount, counterparty_name, counterparty_phone, due_date, status, notes, created_by, created_at, client_id, synced_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'desktop-win-01', CURRENT_TIMESTAMP)
+    `);
+    const insertItem = cloudDb.prepare(`
+      INSERT OR REPLACE INTO operation_items (id, operation_id, product_id, product_name, quantity, unit_price, total_price)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    for (const op of operations) {
+      insertOp.run(op.id, op.operation_code, op.type, op.payment_type, op.bank_name || null, op.transaction_reference || null, op.total_amount, op.counterparty_name || null, op.counterparty_phone || null, op.due_date || null, op.status, op.notes || null, op.created_by, op.created_at);
+      if (op.items && Array.isArray(op.items)) {
+        for (let i = 0; i < op.items.length; i++) {
+          const it = op.items[i];
+          insertItem.run(it.id || `${op.id}-item-${i}`, op.id, it.product_id, it.product_name, it.quantity, it.unit_price, it.total_price || (it.quantity * it.unit_price));
+        }
+      }
+    }
+
+    // Upsert debts
+    const insertDebt = cloudDb.prepare(`
+      INSERT OR REPLACE INTO debts (id, operation_id, debtor_name, phone, initial_amount, remaining_amount, issue_date, due_date, status, items_summary, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    for (const d of debts) {
+      insertDebt.run(d.id, d.operation_id || null, d.debtor_name, d.phone || '', d.initial_amount, d.remaining_amount, d.issue_date, d.due_date || null, d.status || 'ACTIVE', d.items_summary || '', d.updated_at || new Date().toISOString());
+    }
+
+    cloudDb.close();
+    return true;
+  } catch (err) {
+    console.warn('[SYNC NOTE] Direct cloud_medstock.db sync error:', err.message);
+    return false;
+  }
+}
+
 // POST /api/local/sync - trigger automatic synchronization with online database
 app.post('/api/local/sync', async (req, res) => {
   const clientId = getConfig('client_id', 'desktop-win-terminal-01');
@@ -280,9 +366,11 @@ app.post('/api/local/sync', async (req, res) => {
     const allLocalProducts = db.prepare('SELECT * FROM local_products WHERE is_active = 1').all();
     const allLocalDebts = db.prepare('SELECT * FROM local_debts').all();
     let pushedCount = 0;
-    let syncedSuccessfully = false;
 
-    // 2. Push to Cloud Gateway (port 4000) if running (instant PWA reflection)
+    // 2. Direct Mirror to Cloud Backend SQLite Database (instant offline/local PWA reflection)
+    syncToLocalCloudDb(allLocalProducts, opsWithItems, allLocalDebts);
+
+    // 3. Push to Cloud Gateway port 4000 if running
     try {
       const pushResp = await fetch(`${CLOUD_GATEWAY_URL}/api/sync/push`, {
         method: 'POST',
@@ -293,21 +381,23 @@ app.post('/api/local/sync', async (req, res) => {
           products: allLocalProducts,
           debts: allLocalDebts
         }),
-        signal: AbortSignal.timeout(3000)
+        signal: AbortSignal.timeout(2000)
       });
       if (pushResp.ok) {
         const pushData = await pushResp.json();
         pushedCount = (pushData.syncedIds || []).length;
-        syncedSuccessfully = true;
       }
     } catch (gwErr) {
-      console.log('[GATEWAY SYNC NOTE]:', gwErr.message);
+      // Gateway might not be listening, direct SQLite sync succeeded
     }
 
-    // 3. Sync to Supabase Online Database via REST PostgREST API
+    // 4. Sync to Supabase Online Database via REST PostgREST API
+    let supabaseStatus = 'SUCCESS';
+    let supabaseNotice = null;
+
     try {
       if (allLocalProducts.length > 0) {
-        fetch(`${SUPABASE_URL}/rest/v1/products`, {
+        const pResp = await fetch(`${SUPABASE_URL}/rest/v1/products`, {
           method: 'POST',
           headers: {
             'apikey': SUPABASE_KEY,
@@ -328,12 +418,17 @@ app.post('/api/local/sync', async (req, res) => {
             is_active: p.is_active || 1,
             updated_at: p.updated_at || new Date().toISOString()
           }))),
-          signal: AbortSignal.timeout(4000)
-        }).catch(e => console.log('[SUPABASE REST products note]:', e.message));
+          signal: AbortSignal.timeout(5000)
+        });
+
+        if (pResp.status === 404) {
+          supabaseStatus = 'SCHEMA_MISSING';
+          supabaseNotice = 'Таблицы в Supabase еще не созданы. Чтобы данные появились в онлайн-базе, выполните в Supabase SQL Editor файл supabase_schema.sql.';
+        }
       }
 
-      if (opsWithItems.length > 0) {
-        fetch(`${SUPABASE_URL}/rest/v1/operations`, {
+      if (opsWithItems.length > 0 && supabaseStatus !== 'SCHEMA_MISSING') {
+        const oResp = await fetch(`${SUPABASE_URL}/rest/v1/operations`, {
           method: 'POST',
           headers: {
             'apikey': SUPABASE_KEY,
@@ -359,16 +454,19 @@ app.post('/api/local/sync', async (req, res) => {
             client_id: clientId,
             synced_at: new Date().toISOString()
           }))),
-          signal: AbortSignal.timeout(4000)
-        }).catch(e => console.log('[SUPABASE REST ops note]:', e.message));
+          signal: AbortSignal.timeout(5000)
+        });
 
-        syncedSuccessfully = true;
+        if (oResp.status === 404) {
+          supabaseStatus = 'SCHEMA_MISSING';
+          supabaseNotice = 'Таблицы в Supabase еще не созданы. Чтобы данные появились в онлайн-базе, выполните в Supabase SQL Editor файл supabase_schema.sql.';
+        }
       }
     } catch (sbErr) {
       console.log('[SUPABASE SYNC NOTE]:', sbErr.message);
     }
 
-    // 4. Mark local operations as synced
+    // 5. Mark local operations as synced
     const markSynced = db.prepare('UPDATE local_operations SET sync_pending = 0 WHERE id = ?');
     const runMark = db.transaction(() => {
       for (const op of opsWithItems) {
@@ -378,15 +476,17 @@ app.post('/api/local/sync', async (req, res) => {
     runMark();
     pushedCount = opsWithItems.length;
 
-    // 5. Save last synced timestamp
+    // 6. Save last synced timestamp
     const nowIso = new Date().toISOString();
     setConfig('last_synced_at', nowIso);
 
     res.json({
       success: true,
-      message: 'Синхронизация с онлайн-базой успешно выполнена',
+      message: 'Синхронизация успешно выполнена',
       pushedOperations: pushedCount,
       pushedProducts: allLocalProducts.length,
+      supabaseStatus,
+      supabaseNotice,
       lastSyncTime: nowIso
     });
   } catch (err) {

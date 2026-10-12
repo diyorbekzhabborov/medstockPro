@@ -23,7 +23,19 @@ app.use('/api', async (req, res) => {
     fetchOptions.body = JSON.stringify(req.body);
   }
 
-  // 1. Try primary Cloud API (port 4000)
+  // 1. Try primary Desktop Warehouse Server (port 3000)
+  try {
+    const desktopRes = await fetch(`http://localhost:3000/api${req.url}`, {
+      ...fetchOptions,
+      signal: AbortSignal.timeout(1200)
+    });
+    if (desktopRes.ok) {
+      const desktopData = await desktopRes.json();
+      return res.status(desktopRes.status).json(desktopData);
+    }
+  } catch (e) {}
+
+  // 2. Try Cloud API Gateway (port 4000)
   try {
     const apiRes = await fetch(`${CLOUD_API_URL}/api${req.url}`, {
       ...fetchOptions,
@@ -33,16 +45,6 @@ app.use('/api', async (req, res) => {
       const data = await apiRes.json();
       return res.status(apiRes.status).json(data);
     }
-  } catch (e) {}
-
-  // 2. Automatic fallback to Desktop Warehouse Server (port 3000)
-  try {
-    const fallbackRes = await fetch(`http://localhost:3000/api${req.url}`, {
-      ...fetchOptions,
-      signal: AbortSignal.timeout(2500)
-    });
-    const fallbackData = await fallbackRes.json();
-    return res.status(fallbackRes.status).json(fallbackData);
   } catch (fallbackErr) {
     res.status(502).json({ error: 'Сервер склада недоступен. Проверьте запуск MedStock Pro: ' + fallbackErr.message });
   }

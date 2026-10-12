@@ -983,11 +983,32 @@
       if (refreshIcon) refreshIcon.classList.add('animate-spin');
 
       try {
-        const res = await fetch('/api/analytics/dashboard');
-        const data = await res.json();
-        dashboardData = data;
-        renderDashboard();
+        let res = await fetch('/api/analytics/dashboard');
+        let data = null;
+        if (res.ok) {
+          data = await res.json();
+        } else {
+          try {
+            const altRes = await fetch(`http://${window.location.hostname}:3000/api/analytics/dashboard`);
+            if (altRes.ok) data = await altRes.json();
+          } catch(e) {}
+        }
+
+        if (data) {
+          dashboardData = data;
+          renderDashboard();
+        } else {
+          renderDashboard();
+        }
       } catch (err) {
+        try {
+          const altRes = await fetch(`http://${window.location.hostname}:3000/api/analytics/dashboard`);
+          if (altRes.ok) {
+            dashboardData = await altRes.json();
+            renderDashboard();
+            return;
+          }
+        } catch(e) {}
         console.warn('Сервер недоступен, отображаются нулевые значения базы:', err);
         renderDashboard();
       } finally {
@@ -1159,11 +1180,28 @@
     // DEBTS MODULE
     async function fetchDebtsData() {
       try {
-        const res = await fetch('/api/debts');
-        const data = await res.json();
-        debtsData = data.debts || [];
+        let res = await fetch('/api/debts');
+        let data = null;
+        if (res.ok) {
+          data = await res.json();
+        } else {
+          try {
+            const altRes = await fetch(`http://${window.location.hostname}:3000/api/debts`);
+            if (altRes.ok) data = await altRes.json();
+          } catch(e) {}
+        }
+        debtsData = (data && data.debts) ? data.debts : [];
         renderDebtsList();
       } catch (err) {
+        try {
+          const altRes = await fetch(`http://${window.location.hostname}:3000/api/debts`);
+          if (altRes.ok) {
+            const data = await altRes.json();
+            debtsData = data.debts || [];
+            renderDebtsList();
+            return;
+          }
+        } catch(e) {}
         console.warn('Дебиторы пока отсутствуют:', err);
       }
     }
@@ -1241,11 +1279,28 @@
     // PRODUCTS CATALOG MODULE
     async function fetchProductsData() {
       try {
-        const res = await fetch('/api/products');
-        const data = await res.json();
-        productsData = data.products || [];
+        let res = await fetch('/api/products');
+        let data = null;
+        if (res.ok) {
+          data = await res.json();
+        } else {
+          try {
+            const altRes = await fetch(`http://${window.location.hostname}:3000/api/products`);
+            if (altRes.ok) data = await altRes.json();
+          } catch(e) {}
+        }
+        productsData = (data && data.products) ? data.products : [];
         renderPwaProducts();
       } catch (err) {
+        try {
+          const altRes = await fetch(`http://${window.location.hostname}:3000/api/products`);
+          if (altRes.ok) {
+            const data = await altRes.json();
+            productsData = data.products || [];
+            renderPwaProducts();
+            return;
+          }
+        } catch(e) {}
         console.warn('Товары пока отсутствуют:', err);
       }
     }

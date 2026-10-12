@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="uz">
+<html lang="ru">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
@@ -10,7 +10,7 @@
   <link rel="manifest" href="/manifest.json">
   <link rel="icon" type="image/svg+xml" href="/icon.svg">
   <link rel="apple-touch-icon" href="/icon.svg">
-  <title>MedStock Pro — Mobil Bank & Rahbar Kabineti</title>
+  <title>MedStock Pro — Финтех Кабинет Владельца</title>
   
   <!-- Offline Tailwind CSS & Lucide Icons -->
   <script src="/js/tailwind.min.js"></script>
@@ -112,7 +112,7 @@
   <div id="pull-refresh-indicator" class="fixed top-0 left-0 right-0 max-w-md mx-auto flex items-center justify-center pointer-events-none z-50 transform -translate-y-full pt-safe">
     <div class="mt-2 bg-slate-800/95 text-emerald-400 border border-slate-700/80 px-4 py-2 rounded-full shadow-2xl flex items-center gap-2 text-xs font-bold backdrop-blur-md">
       <i id="pull-spinner" data-lucide="refresh-cw" class="w-4 h-4 transition-transform duration-200"></i>
-      <span id="pull-text">Yangilash uchun pastga torting</span>
+      <span id="pull-text">Потяните вниз для обновления</span>
     </div>
   </div>
 
@@ -124,28 +124,28 @@
       <div class="flex items-center gap-3">
         <div class="relative">
           <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-slate-950 font-black text-sm shadow-md shadow-emerald-500/20">
-            ACh
+            АЧ
           </div>
           <span class="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-400 border-2 border-[#070B14] rounded-full animate-pulse"></span>
         </div>
         <div>
           <div class="flex items-center gap-1.5">
-            <h1 class="text-sm font-extrabold text-white tracking-tight">Abdullojhon Chabborov</h1>
-            <span class="text-[9px] bg-emerald-500/20 text-emerald-300 font-bold px-1.5 py-0.5 rounded-full border border-emerald-500/30">Rahbar</span>
+            <h1 class="text-sm font-extrabold text-white tracking-tight">Абдуллочон Чабборов</h1>
+            <span class="text-[9px] bg-emerald-500/20 text-emerald-300 font-bold px-1.5 py-0.5 rounded-full border border-emerald-500/30">Владелец</span>
           </div>
           <p class="text-[11px] text-slate-400 font-medium flex items-center gap-1 mt-0.5">
             <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-            <span>Online • Baza toza</span>
+            <span>Онлайн • База чистая</span>
           </p>
         </div>
       </div>
 
       <!-- Header Actions: Refresh & Bell -->
       <div class="flex items-center gap-2">
-        <button onclick="fetchDashboardData()" id="btn-refresh" class="p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 active:scale-95 transition cursor-pointer" title="Ma'lumotlarni yangilash">
+        <button onclick="fetchDashboardData()" id="btn-refresh" class="p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 active:scale-95 transition cursor-pointer" title="Обновить баланс">
           <i id="refresh-icon" data-lucide="refresh-cw" class="w-4 h-4"></i>
         </button>
-        <button onclick="toggleNotifications()" class="relative p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 active:scale-95 transition cursor-pointer" title="Bildirishnomalar">
+        <button onclick="toggleNotifications()" class="relative p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 active:scale-95 transition cursor-pointer" title="Уведомления">
           <i data-lucide="bell" class="w-4 h-4"></i>
           <span id="bell-dot" class="absolute top-1.5 right-1.5 w-2 h-2 bg-emerald-400 rounded-full"></span>
         </button>
@@ -160,7 +160,7 @@
       <div class="flex justify-between items-center border-b border-slate-700/60 pb-3">
         <div class="flex items-center gap-2 font-extrabold text-white text-sm">
           <i data-lucide="bell-ring" class="w-4 h-4 text-emerald-400"></i>
-          <span>Tizim bildirishnomalari</span>
+          <span>Уведомления руководителя</span>
         </div>
         <button onclick="toggleNotifications()" class="text-slate-400 hover:text-white p-1">
           <i data-lucide="x" class="w-4 h-4"></i>
@@ -170,22 +170,22 @@
         <div class="p-3 bg-slate-800/90 border border-slate-700 rounded-2xl flex items-start gap-2.5">
           <div class="p-1.5 bg-emerald-500/20 text-emerald-400 rounded-lg mt-0.5"><i data-lucide="database" class="w-3.5 h-3.5"></i></div>
           <div>
-            <div class="font-bold text-slate-200">Baza ma'lumot kiritishga tayyor</div>
-            <div class="text-[11px] text-slate-400 mt-0.5">Hozirda bazada 0 ta operatsiya. Kompyuterdan kirim va sotuvlar kiritilgach bu yerda hisoblanadi.</div>
+            <div class="font-bold text-slate-200">База готова к вводу</div>
+            <div class="text-[11px] text-slate-400 mt-0.5">В базе пока 0 операций. Поступления и продажи, оформленные на ПК склада, сразу отобразятся в телефоне.</div>
           </div>
         </div>
         <div class="p-3 bg-slate-800/90 border border-slate-700 rounded-2xl flex items-start gap-2.5">
           <div class="p-1.5 bg-teal-500/20 text-teal-400 rounded-lg mt-0.5"><i data-lucide="cloud-check" class="w-3.5 h-3.5"></i></div>
           <div>
-            <div class="font-bold text-slate-200">Bulutli sinxronizatsiya faol</div>
-            <div class="text-[11px] text-slate-400 mt-0.5">Kompyuterda sinxronizatsiya tugmasi bosilganda ma'lumotlar avtomatik telefoningizda aks etadi.</div>
+            <div class="font-bold text-slate-200">Облачный канал связи активен</div>
+            <div class="text-[11px] text-slate-400 mt-0.5">При нажатии кнопки синхронизации на ПК данные моментально появляются в вашем мобильном приложении.</div>
           </div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- OWNER PIN-CODE AUTHENTICATION OVERLAY (FULL-SCREEN MOBILE BANK STYLE: 1223) -->
+  <!-- OWNER PIN-CODE AUTHENTICATION OVERLAY (FULL-SCREEN MOBILE BANK STYLE: 1223 & FACE ID) -->
   <div id="owner-auth-screen" class="fixed inset-0 bg-[#070B14] z-50 flex flex-col justify-between px-6 py-10 select-none">
     
     <!-- Top Branding & Status -->
@@ -199,11 +199,11 @@
 
       <div class="text-center">
         <h1 class="text-2xl font-black text-white tracking-tight">MedStock Pro</h1>
-        <p class="text-xs text-slate-400 font-medium mt-1">Abdullojhon Chabborov • Rahbar kabineti</p>
+        <p class="text-xs text-slate-400 font-medium mt-1">Абдуллочон Чабборов • Кабинет владельца</p>
       </div>
 
       <div class="pt-3">
-        <p class="text-xs font-semibold text-emerald-400 uppercase tracking-widest">Kodni kiriting</p>
+        <p class="text-xs font-semibold text-emerald-400 uppercase tracking-widest">Введите код доступа</p>
       </div>
 
       <!-- 4 PIN Indicator Dots -->
@@ -216,12 +216,12 @@
 
       <!-- PIN Error Message -->
       <div id="pin-error" class="hidden text-xs text-rose-400 bg-rose-950/70 border border-rose-800/80 px-4 py-2 rounded-2xl font-semibold mt-2 animate-bounce">
-        Noto'g'ri kod! Qaytadan urinib ko'ring.
+        Неверный код доступа! Попробуйте снова.
       </div>
     </div>
 
-    <!-- Digital Numpad (Large Ergonomic Banking Keys) -->
-    <div class="w-full max-w-[320px] mx-auto pb-4">
+    <!-- Digital Numpad (Ergonomic Banking Keys + Native Face ID Button) -->
+    <div class="w-full max-w-[320px] mx-auto pb-6">
       <div class="grid grid-cols-3 gap-y-4 gap-x-6 place-items-center">
         <button type="button" onclick="enterPinDigit('1')" class="pin-key">1</button>
         <button type="button" onclick="enterPinDigit('2')" class="pin-key">2</button>
@@ -235,17 +235,17 @@
         <button type="button" onclick="enterPinDigit('8')" class="pin-key">8</button>
         <button type="button" onclick="enterPinDigit('9')" class="pin-key">9</button>
 
-        <div class="w-20 h-20 flex items-center justify-center">
-          <i data-lucide="fingerprint" class="w-7 h-7 text-slate-600"></i>
-        </div>
+        <!-- Face ID / Biometrics Button on Bottom-Left -->
+        <button type="button" id="btn-face-id" onclick="triggerBiometricAuth()" class="w-20 h-20 rounded-full flex flex-col items-center justify-center text-emerald-400 hover:text-white active:scale-90 active:bg-emerald-500/20 transition cursor-pointer select-none" title="Войти по Face ID / Touch ID">
+          <i data-lucide="scan-face" class="w-7 h-7"></i>
+          <span class="text-[9px] font-bold mt-1 text-emerald-300">Face ID</span>
+        </button>
+
         <button type="button" onclick="enterPinDigit('0')" class="pin-key">0</button>
-        <button type="button" onclick="deletePinDigit()" class="w-20 h-20 rounded-full flex items-center justify-center text-slate-400 hover:text-white active:scale-90 active:bg-slate-800 transition">
+        
+        <button type="button" onclick="deletePinDigit()" class="w-20 h-20 rounded-full flex items-center justify-center text-slate-400 hover:text-white active:scale-90 active:bg-slate-800 transition cursor-pointer">
           <i data-lucide="delete" class="w-7 h-7"></i>
         </button>
-      </div>
-
-      <div class="text-center pt-6 text-[11px] text-slate-500">
-        Kirish PIN-kodi: <span class="text-emerald-400 font-mono font-bold tracking-widest">1223</span>
       </div>
     </div>
 
@@ -254,10 +254,10 @@
   <!-- MAIN SCROLLABLE CONTAINER -->
   <main class="flex-1 px-5 py-4 space-y-4 overflow-y-auto pb-24">
 
-    <!-- VIEW 1: FINTECH DASHBOARD (SODDA VA TUSHUNARLI BANK DIZAYNI) -->
+    <!-- VIEW 1: FINTECH DASHBOARD (ЛАКОНИЧНЫЙ БАНКОВСКИЙ ДИЗАЙН) -->
     <div id="view-dashboard" class="space-y-4">
 
-      <!-- 1. MASTER BANKING BALANCE CARD: BUGUNGI TUSHUM -->
+      <!-- 1. MASTER BANKING BALANCE CARD: ВЫРУЧКА ЗА СЕГОДНЯ -->
       <div class="master-card rounded-3xl p-5 text-white relative overflow-hidden shadow-2xl">
         <!-- Subtle ambient decorative glow -->
         <div class="absolute -right-8 -top-8 w-40 h-40 bg-emerald-400/15 rounded-full blur-3xl pointer-events-none"></div>
@@ -267,10 +267,10 @@
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
               <span class="w-2 h-2 rounded-full bg-emerald-300 animate-pulse"></span>
-              <span class="text-xs font-bold uppercase tracking-wider text-emerald-200">Bugungi tushum</span>
+              <span class="text-xs font-bold uppercase tracking-wider text-emerald-200">Выручка за сегодня</span>
             </div>
             <span class="px-2.5 py-0.5 rounded-full bg-black/25 text-[10px] font-bold text-emerald-200 border border-white/10">
-              TJS • Somoni
+              TJS • Сомони
             </span>
           </div>
 
@@ -281,20 +281,20 @@
               <span class="text-xl font-bold text-emerald-300">TJS</span>
             </div>
             <div class="text-[11px] text-emerald-100/80 mt-1 flex items-center gap-2 font-medium">
-              <span id="dash-today-date">Bugun</span>
+              <span id="dash-today-date">Сегодня</span>
               <span>•</span>
-              <span>Kassa faol</span>
+              <span>Касса открыта</span>
             </div>
           </div>
 
-          <!-- Sub-pills: Naqd pul & Karta/Bank -->
+          <!-- Sub-pills: Наличные & Безнал / Банк -->
           <div class="grid grid-cols-2 gap-2.5 pt-3 border-t border-white/15">
             <div class="bg-black/25 rounded-2xl p-2.5 flex items-center gap-2.5 border border-white/5">
               <div class="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-300 flex items-center justify-center shrink-0">
                 <i data-lucide="banknote" class="w-4 h-4"></i>
               </div>
               <div class="overflow-hidden">
-                <div class="text-[10px] text-slate-300 font-medium">Naqd pul</div>
+                <div class="text-[10px] text-slate-300 font-medium">Наличные (Касса)</div>
                 <div class="text-xs font-bold font-mono-numbers text-white truncate"><span id="dash-today-cash">0.00</span> TJS</div>
               </div>
             </div>
@@ -304,7 +304,7 @@
                 <i data-lucide="credit-card" class="w-4 h-4"></i>
               </div>
               <div class="overflow-hidden">
-                <div class="text-[10px] text-slate-300 font-medium">Karta / Bank</div>
+                <div class="text-[10px] text-slate-300 font-medium">Безнал (Банки)</div>
                 <div class="text-xs font-bold font-mono-numbers text-white truncate"><span id="dash-today-cashless">0.00</span> TJS</div>
               </div>
             </div>
@@ -313,41 +313,41 @@
         </div>
       </div>
 
-      <!-- 2. QUICK ACTION ROUND BUTTONS (TEZKOR AMALLAR - BANK USLUBIDA) -->
+      <!-- 2. QUICK ACTION ROUND BUTTONS (БЫСТРЫЕ ДЕЙСТВИЯ - В СТИЛЕ БАНКОВСКИХ ПРИЛОЖЕНИЙ) -->
       <div class="grid grid-cols-4 gap-2 text-center py-0.5">
         <button onclick="switchView('products')" class="flex flex-col items-center gap-1.5 p-2 rounded-2xl bg-slate-800/60 border border-slate-700/50 hover:bg-slate-800 active:scale-95 transition">
           <div class="w-11 h-11 rounded-2xl bg-teal-500/15 text-teal-400 flex items-center justify-center shadow-md">
             <i data-lucide="package" class="w-5 h-5"></i>
           </div>
-          <span class="text-[11px] font-bold text-slate-200">Ombor</span>
+          <span class="text-[11px] font-bold text-slate-200">Склад</span>
         </button>
 
         <button onclick="switchView('debts')" class="flex flex-col items-center gap-1.5 p-2 rounded-2xl bg-slate-800/60 border border-slate-700/50 hover:bg-slate-800 active:scale-95 transition">
           <div class="w-11 h-11 rounded-2xl bg-amber-500/15 text-amber-400 flex items-center justify-center shadow-md">
             <i data-lucide="users" class="w-5 h-5"></i>
           </div>
-          <span class="text-[11px] font-bold text-slate-200">Qarzlar</span>
+          <span class="text-[11px] font-bold text-slate-200">Дебиторы</span>
         </button>
 
         <button onclick="switchView('transactions')" class="flex flex-col items-center gap-1.5 p-2 rounded-2xl bg-slate-800/60 border border-slate-700/50 hover:bg-slate-800 active:scale-95 transition">
           <div class="w-11 h-11 rounded-2xl bg-sky-500/15 text-sky-400 flex items-center justify-center shadow-md">
             <i data-lucide="receipt" class="w-5 h-5"></i>
           </div>
-          <span class="text-[11px] font-bold text-slate-200">Tarix</span>
+          <span class="text-[11px] font-bold text-slate-200">Журнал</span>
         </button>
 
         <button onclick="fetchDashboardData()" class="flex flex-col items-center gap-1.5 p-2 rounded-2xl bg-slate-800/60 border border-slate-700/50 hover:bg-slate-800 active:scale-95 transition">
           <div class="w-11 h-11 rounded-2xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center shadow-md">
             <i data-lucide="refresh-cw" class="w-5 h-5"></i>
           </div>
-          <span class="text-[11px] font-bold text-slate-200">Yangilash</span>
+          <span class="text-[11px] font-bold text-slate-200">Обновить</span>
         </button>
       </div>
 
-      <!-- 3. TWO CLEAR SUMMARY TILES: OMBOR QIYMATI & MIJOZLAR QARZI -->
+      <!-- 3. TWO CLEAR SUMMARY TILES: КАПИТАЛИЗАЦИЯ СКЛАДА & ДОЛГИ КЛИЕНТОВ -->
       <div class="grid grid-cols-2 gap-3">
         
-        <!-- CARD 1: OMBOR QIYMATI -->
+        <!-- CARD 1: КАПИТАЛИЗАЦИЯ СКЛАДА -->
         <div onclick="switchView('products')" class="fintech-card rounded-3xl p-4 flex flex-col justify-between cursor-pointer active:scale-98 transition hover:border-teal-500/40">
           <div>
             <div class="flex items-center justify-between mb-2">
@@ -355,21 +355,21 @@
                 <i data-lucide="boxes" class="w-4 h-4"></i>
               </div>
               <span class="text-[10px] font-bold text-teal-400 bg-teal-500/10 px-2 py-0.5 rounded-full border border-teal-500/20" id="dash-products-count">
-                0 ta tovar
+                0 позиций
               </span>
             </div>
-            <div class="text-[11px] font-medium text-slate-400">Ombor qiymati</div>
+            <div class="text-[11px] font-medium text-slate-400">Капитализация склада</div>
             <div class="text-lg font-black font-mono-numbers text-white mt-1">
               <span id="dash-capitalization">0.00</span> <span class="text-xs font-bold text-teal-400">TJS</span>
             </div>
           </div>
           <div class="text-[10px] text-teal-400/90 font-semibold pt-2 border-t border-slate-800/80 mt-2.5 flex items-center justify-between">
-            <span>Omborni ko'rish</span>
+            <span>Открыть склад</span>
             <span>→</span>
           </div>
         </div>
 
-        <!-- CARD 2: MIJOZLAR QARZI (NASIYALAR) -->
+        <!-- CARD 2: МНЕ ДОЛЖНЫ КЛИЕНТЫ (ДЕБИТОРЫ) -->
         <div onclick="switchView('debts')" class="fintech-card rounded-3xl p-4 flex flex-col justify-between cursor-pointer active:scale-98 transition hover:border-amber-500/40">
           <div>
             <div class="flex items-center justify-between mb-2">
@@ -377,16 +377,16 @@
                 <i data-lucide="clock" class="w-4 h-4"></i>
               </div>
               <span class="text-[10px] font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20" id="dash-debtors-badge">
-                0 ta qarzdor
+                0 должников
               </span>
             </div>
-            <div class="text-[11px] font-medium text-slate-400">Mijozlar qarzi</div>
+            <div class="text-[11px] font-medium text-slate-400">Мне должны клиенты</div>
             <div class="text-lg font-black font-mono-numbers text-amber-400 mt-1">
               <span id="dash-debts-total">0.00</span> <span class="text-xs font-bold text-amber-400/80">TJS</span>
             </div>
           </div>
           <div class="text-[10px] text-amber-400/90 font-semibold pt-2 border-t border-slate-800/80 mt-2.5 flex items-center justify-between">
-            <span>Nasiyalar ro'yxati</span>
+            <span>Реестр дебиторов</span>
             <span>→</span>
           </div>
         </div>
@@ -400,9 +400,9 @@
             <i data-lucide="hospital" class="w-4 h-4"></i>
           </div>
           <div>
-            <div class="text-xs font-bold text-white">Klinika xarajati (Spisaniye)</div>
+            <div class="text-xs font-bold text-white">Расход клиники (Списание)</div>
             <div class="text-[11px] text-slate-400 font-medium">
-              <span id="dash-clinic-badge">0 ta operatsiya</span>
+              <span id="dash-clinic-badge">0 операций</span>
             </div>
           </div>
         </div>
@@ -410,19 +410,19 @@
           <div class="text-sm font-black font-mono-numbers text-sky-400">
             <span id="dash-clinic-expense">0.00</span> TJS
           </div>
-          <div class="text-[10px] text-slate-500 font-semibold">Tafsilotlar →</div>
+          <div class="text-[10px] text-slate-500 font-semibold">Детали →</div>
         </div>
       </div>
 
-      <!-- 5. RECENT ACTIVITY (SO'NGGI AMALLAR - BANK KO'CHIRMASI) -->
+      <!-- 5. RECENT ACTIVITY (ПОСЛЕДНИЕ ОПЕРАЦИИ - БАНКОВСКАЯ ВЫПИСКА) -->
       <div class="space-y-2.5 pt-1">
         <div class="flex items-center justify-between px-1">
           <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
             <i data-lucide="activity" class="w-4 h-4 text-emerald-400"></i>
-            <span>So'nggi operatsiyalar</span>
+            <span>Последние операции</span>
           </h3>
           <button onclick="switchView('transactions')" class="text-xs font-bold text-emerald-400 hover:text-emerald-300">
-            Barchasi →
+            Все →
           </button>
         </div>
 
@@ -430,49 +430,49 @@
           <!-- Populated dynamically via JS or clean zero-state -->
           <div class="fintech-card rounded-2xl p-5 text-center text-slate-500 text-xs border border-slate-800">
             <i data-lucide="inbox" class="w-7 h-7 text-slate-600 mx-auto mb-1.5"></i>
-            <div class="font-bold text-slate-300">Bazada operatsiyalar yo'q</div>
-            <p class="text-[11px] text-slate-500 mt-0.5">Kirim va sotuvlar kiritilgach bu yerda ko'rinadi.</p>
+            <div class="font-bold text-slate-300">В базе пока нет записей</div>
+            <p class="text-[11px] text-slate-500 mt-0.5">Операции склада появятся здесь после ввода на ПК.</p>
           </div>
         </div>
       </div>
 
     </div>
 
-    <!-- VIEW 2: OPERATSIYALAR TARIXI («TARIX») -->
+    <!-- VIEW 2: ЖУРНАЛ ОПЕРАЦИЙ («ЖУРНАЛ») -->
     <div id="view-transactions" class="space-y-4 hidden">
       <div class="flex items-center justify-between">
         <div>
-          <h2 class="text-base font-bold text-white">Operatsiyalar jurnali</h2>
-          <p class="text-xs text-slate-400">Barcha kirim, sotuv va sписанияlar tarixi</p>
+          <h2 class="text-base font-bold text-white">Журнал операций</h2>
+          <p class="text-xs text-slate-400">Полный реестр поступлений, продаж и списаний медикаментов</p>
         </div>
       </div>
 
       <!-- Filter chips -->
       <div class="flex gap-2 text-xs overflow-x-auto pb-1 no-scrollbar">
-        <button onclick="filterFeed('ALL')" id="filter-btn-all" class="filter-chip px-3.5 py-1.5 rounded-full font-bold bg-emerald-500 text-slate-950">Barchasi</button>
-        <button onclick="filterFeed('RECEIVE')" id="filter-btn-receive" class="filter-chip px-3.5 py-1.5 rounded-full font-semibold bg-slate-800 border border-slate-700 text-slate-300">Kirim</button>
-        <button onclick="filterFeed('SALE')" id="filter-btn-sale" class="filter-chip px-3.5 py-1.5 rounded-full font-semibold bg-slate-800 border border-slate-700 text-slate-300">Sotuv</button>
-        <button onclick="filterFeed('CLINIC_WRITE_OFF')" id="filter-btn-clinic" class="filter-chip px-3.5 py-1.5 rounded-full font-semibold bg-slate-800 border border-slate-700 text-slate-300">Klinikaga</button>
-        <button onclick="filterFeed('DEBT')" id="filter-btn-debt" class="filter-chip px-3.5 py-1.5 rounded-full font-semibold bg-slate-800 border border-slate-700 text-slate-300">Nasiya</button>
+        <button onclick="filterFeed('ALL')" id="filter-btn-all" class="filter-chip px-3.5 py-1.5 rounded-full font-bold bg-emerald-500 text-slate-950">Все</button>
+        <button onclick="filterFeed('RECEIVE')" id="filter-btn-receive" class="filter-chip px-3.5 py-1.5 rounded-full font-semibold bg-slate-800 border border-slate-700 text-slate-300">Приход</button>
+        <button onclick="filterFeed('SALE')" id="filter-btn-sale" class="filter-chip px-3.5 py-1.5 rounded-full font-semibold bg-slate-800 border border-slate-700 text-slate-300">Продажи</button>
+        <button onclick="filterFeed('CLINIC_WRITE_OFF')" id="filter-btn-clinic" class="filter-chip px-3.5 py-1.5 rounded-full font-semibold bg-slate-800 border border-slate-700 text-slate-300">В клинику</button>
+        <button onclick="filterFeed('DEBT')" id="filter-btn-debt" class="filter-chip px-3.5 py-1.5 rounded-full font-semibold bg-slate-800 border border-slate-700 text-slate-300">В долг</button>
       </div>
 
       <div id="transactions-feed-container" class="space-y-2.5">
         <div class="fintech-card rounded-2xl p-8 text-center text-slate-500 text-xs border border-slate-800">
           <i data-lucide="inbox" class="w-8 h-8 text-slate-600 mx-auto mb-2"></i>
-          <div>Jurnalda hozircha yozuvlar yo'q</div>
+          <div>В журнале пока нет записей</div>
         </div>
       </div>
     </div>
 
-    <!-- VIEW 3: NASIYALAR DAFTARI («QARZLAR») -->
+    <!-- VIEW 3: РЕЕСТР ДЕБИТОРОВ («ДЕБИТОРЫ») -->
     <div id="view-debts" class="space-y-4 hidden">
       <div class="flex items-center justify-between">
         <div>
-          <h2 class="text-base font-bold text-white">Nasiyalar daftari</h2>
-          <p class="text-xs text-slate-400">Mijozlar tomonidan to'lanmagan qarzlar</p>
+          <h2 class="text-base font-bold text-white">Реестр дебиторов</h2>
+          <p class="text-xs text-slate-400">Товары, отпущенные под реализацию</p>
         </div>
         <div class="text-right">
-          <span class="text-[10px] text-slate-400 font-bold uppercase">Jami qarz</span>
+          <span class="text-[10px] text-slate-400 font-bold uppercase">Сумма долгов</span>
           <div class="text-base font-black font-mono-numbers text-amber-400" id="debts-view-total">0.00 TJS</div>
         </div>
       </div>
@@ -480,68 +480,73 @@
       <div id="debts-list-container" class="space-y-3">
         <div class="fintech-card rounded-2xl p-8 text-center text-slate-500 text-xs border border-slate-800">
           <i data-lucide="user-check" class="w-8 h-8 text-slate-600 mx-auto mb-2"></i>
-          <div>Faol qarzdorlar yo'q</div>
-          <p class="text-[11px] text-slate-500 mt-0.5">Barcha hisob-kitoblar yopilgan yoki baza toza.</p>
+          <div class="font-bold text-slate-300">Активных должников нет</div>
+          <p class="text-[11px] text-slate-500 mt-0.5">Все расчёты закрыты или база чистая.</p>
         </div>
       </div>
     </div>
 
-    <!-- VIEW 4: OMBOR QOLDIQLARI («OMBOR») -->
+    <!-- VIEW 4: ОСТАТКИ НА СКЛАДЕ («СКЛАД») -->
     <div id="view-products" class="space-y-4 hidden">
       <div class="flex items-center justify-between">
         <div>
-          <h2 class="text-base font-bold text-white">Ombor qoldig'i</h2>
-          <p class="text-xs text-slate-400">Mavjud dorilar va tibbiy mahsulotlar</p>
+          <h2 class="text-base font-bold text-white">Остатки на складе</h2>
+          <p class="text-xs text-slate-400">Наличие медикаментов на складе</p>
         </div>
       </div>
 
       <div class="relative">
-        <input type="text" id="pwa-prod-search" oninput="renderPwaProducts(this.value)" placeholder="Dori nomini qidirish..." class="w-full text-xs px-3.5 py-3 bg-slate-800 border border-slate-700 text-white rounded-2xl pl-10 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+        <input type="text" id="pwa-prod-search" oninput="renderPwaProducts(this.value)" placeholder="Поиск медикамента по названию..." class="w-full text-xs px-3.5 py-3 bg-slate-800 border border-slate-700 text-white rounded-2xl pl-10 focus:outline-none focus:ring-2 focus:ring-emerald-500">
         <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5"></i>
       </div>
 
       <div id="pwa-products-container" class="space-y-2.5">
         <div class="fintech-card rounded-2xl p-8 text-center text-slate-500 text-xs border border-slate-800">
           <i data-lucide="package-open" class="w-8 h-8 text-slate-600 mx-auto mb-2"></i>
-          <div>Omborda tovarlar yo'q</div>
-          <p class="text-[11px] text-slate-500 mt-0.5">Kompyuter orqali tovarlar qoldig'ini kiriting.</p>
+          <div class="font-bold text-slate-300">На складе нет товаров</div>
+          <p class="text-[11px] text-slate-500 mt-0.5">Добавьте номенклатуру товаров на компьютере склада.</p>
         </div>
       </div>
     </div>
 
-    <!-- VIEW 5: RAHBAR PROFILI («PROFIL») -->
+    <!-- VIEW 5: ПРОФИЛЬ РУКОВОДИТЕЛЯ («ПРОФИЛЬ») -->
     <div id="view-profile" class="space-y-4 hidden">
       <div class="fintech-card rounded-3xl p-6 border border-slate-800 space-y-4 text-center">
         <div class="w-20 h-20 rounded-full bg-gradient-to-tr from-emerald-500 to-teal-400 text-slate-950 flex items-center justify-center mx-auto text-2xl font-black shadow-lg shadow-emerald-500/20">
-          ACh
+          АЧ
         </div>
         <div>
-          <h2 class="text-lg font-black text-white">Abdullojhon Chabborov</h2>
-          <p class="text-xs font-semibold text-emerald-400 bg-emerald-500/15 border border-emerald-500/30 inline-block px-3 py-1 rounded-full mt-1">Biznes rahbari / Ega</p>
-          <p class="text-xs text-slate-400 mt-1 font-mono">PIN-kod: 1223</p>
+          <h2 class="text-lg font-black text-white">Абдуллочон Чабборов</h2>
+          <p class="text-xs font-semibold text-emerald-400 bg-emerald-500/15 border border-emerald-500/30 inline-block px-3 py-1 rounded-full mt-1">Руководитель / Владелец бизнеса</p>
         </div>
 
         <div class="pt-2 border-t border-slate-800 space-y-2 text-left text-xs">
           <div class="flex justify-between items-center p-3 bg-slate-800/60 rounded-2xl border border-slate-700/50">
-            <span class="text-slate-400 font-medium">Supabase onlayn-baza:</span>
+            <span class="text-slate-400 font-medium">Статус онлайн-базы Supabase:</span>
             <span class="font-bold text-emerald-400 flex items-center gap-1.5">
-              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Ulandi
+              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Подключено
             </span>
           </div>
           <div class="flex justify-between items-center p-3 bg-slate-800/60 rounded-2xl border border-slate-700/50">
-            <span class="text-slate-400 font-medium">Ombor manzili:</span>
-            <span class="font-bold text-white">Xo'jand shahri, Tojikiston</span>
+            <span class="text-slate-400 font-medium">Город склада:</span>
+            <span class="font-bold text-white">г. Худжанд, Таджикистан</span>
           </div>
           <div class="flex justify-between items-center p-3 bg-slate-800/60 rounded-2xl border border-slate-700/50">
-            <span class="text-slate-400 font-medium">Asosiy valyuta:</span>
-            <span class="font-bold text-white">Tojik somonisi (TJS)</span>
+            <span class="text-slate-400 font-medium">Валюта учёта:</span>
+            <span class="font-bold text-white">Таджикский сомони (TJS)</span>
+          </div>
+          <div class="flex justify-between items-center p-3 bg-slate-800/60 rounded-2xl border border-slate-700/50">
+            <span class="text-slate-400 font-medium">Вход по Face ID / Биометрии:</span>
+            <button onclick="triggerBiometricAuth()" class="font-bold text-emerald-400 hover:underline flex items-center gap-1">
+              <i data-lucide="scan-face" class="w-3.5 h-3.5"></i> Настроить
+            </button>
           </div>
         </div>
 
         <div class="pt-2">
           <button onclick="logoutOwner()" class="w-full py-3.5 bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 text-rose-400 font-bold text-xs rounded-2xl transition cursor-pointer flex items-center justify-center gap-2 active:scale-95">
             <i data-lucide="lock" class="w-4 h-4"></i>
-            <span>Kabinetni qulflash (Chiqish)</span>
+            <span>Заблокировать кабинет (Выход)</span>
           </button>
         </div>
       </div>
@@ -554,8 +559,8 @@
     <div class="bg-slate-900 border border-slate-800 rounded-t-3xl sm:rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl">
       <div class="flex justify-between items-start border-b border-slate-800 pb-3">
         <div>
-          <h3 class="font-extrabold text-base text-white">Qarzni so'ndirish</h3>
-          <p class="text-xs text-slate-400" id="pay-modal-debtor-name">Mijoz</p>
+          <h3 class="font-extrabold text-base text-white">Погашение долга</h3>
+          <p class="text-xs text-slate-400" id="pay-modal-debtor-name">Клиент</p>
         </div>
         <button onclick="closePayModal()" class="text-slate-400 hover:text-white p-1">
           <i data-lucide="x" class="w-5 h-5"></i>
@@ -564,33 +569,33 @@
 
       <div class="space-y-3 text-xs">
         <div class="p-3 bg-slate-800 rounded-xl flex justify-between items-baseline">
-          <span class="text-slate-400 font-semibold">Qoldiq qarz:</span>
+          <span class="text-slate-400 font-semibold">Остаток долга:</span>
           <span class="text-lg font-black font-mono-numbers text-amber-400" id="pay-modal-remaining">0.00 TJS</span>
         </div>
 
         <div>
-          <label class="block font-bold text-slate-300 mb-1">To'lanayotgan summa (TJS):</label>
+          <label class="block font-bold text-slate-300 mb-1">Сумма к оплате (TJS):</label>
           <input type="number" step="0.5" id="pay-modal-amount" class="w-full text-base font-bold font-mono-numbers px-3 py-2.5 bg-slate-800 border border-slate-700 text-white rounded-xl focus:ring-2 focus:ring-emerald-500">
         </div>
 
         <div>
-          <label class="block font-bold text-slate-300 mb-1">To'lov usuli:</label>
+          <label class="block font-bold text-slate-300 mb-1">Способ зачисления:</label>
           <select id="pay-modal-method" class="w-full font-semibold px-3 py-2.5 bg-slate-800 border border-slate-700 text-white rounded-xl focus:ring-2 focus:ring-emerald-500">
-            <option value="CASH">Naqd pul (Kassa)</option>
+            <option value="CASH">Наличные (Касса)</option>
             <option value="Dushanbe City (DC)">Dushanbe City (DC)</option>
-            <option value="Алиф Банк / Alif Mobi">Alif Mobi</option>
-            <option value="Банк Эсхата">Eskhata Bank</option>
-            <option value="Амонатбонк">Amonatbonk</option>
+            <option value="Алиф Банк / Alif Mobi">Алиф Банк / Alif Mobi</option>
+            <option value="Банк Эсхата">Банк Эсхата</option>
+            <option value="Амонатбонк">Амонатбонк</option>
           </select>
         </div>
 
         <div>
-          <label class="block font-bold text-slate-300 mb-1">Chek raqami / izoh:</label>
-          <input type="text" id="pay-modal-ref" placeholder="Masalan: DC-984019" class="w-full px-3 py-2.5 bg-slate-800 border border-slate-700 text-white rounded-xl">
+          <label class="block font-bold text-slate-300 mb-1">Номер квитанции / чек:</label>
+          <input type="text" id="pay-modal-ref" placeholder="Напр: DC-984019" class="w-full px-3 py-2.5 bg-slate-800 border border-slate-700 text-white rounded-xl">
         </div>
 
         <button onclick="submitDebtPayment()" class="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-black text-sm rounded-xl shadow-lg shadow-emerald-500/20 active:scale-95 transition cursor-pointer">
-          To'lovni tasdiqlash
+          Подтвердить погашение
         </button>
       </div>
     </div>
@@ -601,8 +606,8 @@
     <div class="bg-slate-900 border border-slate-800 rounded-t-3xl sm:rounded-3xl max-w-sm w-full p-6 space-y-4 shadow-2xl">
       <div class="flex justify-between items-start border-b border-slate-800 pb-3">
         <div>
-          <h3 class="font-extrabold text-base text-white">Mijoz bilan bog'lanish</h3>
-          <p class="text-xs text-slate-400 mt-0.5" id="share-modal-debtor">Mijoz</p>
+          <h3 class="font-extrabold text-base text-white">Связаться в мессенджере</h3>
+          <p class="text-xs text-slate-400 mt-0.5" id="share-modal-debtor">Клиент</p>
         </div>
         <button onclick="closeShareModal()" class="text-slate-400 hover:text-white p-1">
           <i data-lucide="x" class="w-5 h-5"></i>
@@ -610,7 +615,7 @@
       </div>
 
       <div class="space-y-3 pt-1">
-        <p class="text-xs text-slate-400">Messenjer orqali to'g'ridan-to'g'ri yozish:</p>
+        <p class="text-xs text-slate-400">Прямой переход в диалог с клиентом:</p>
         <div class="grid grid-cols-2 gap-3">
           <a id="share-btn-wa" href="#" target="_blank" class="py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/50 active:scale-95 transition">
             <i data-lucide="message-circle" class="w-5 h-5"></i>
@@ -630,34 +635,34 @@
   <nav class="bg-[#070B14]/95 backdrop-blur-xl border-t border-slate-800/80 fixed bottom-0 left-0 right-0 max-w-md mx-auto z-40 px-4 py-2.5 pb-safe shadow-2xl">
     <div class="flex justify-around items-center text-[10px] font-bold">
       
-      <!-- Tab 1: Asosiy (Dashboard) -->
+      <!-- Tab 1: Главная (Dashboard) -->
       <button onclick="switchView('dashboard')" id="nav-btn-dashboard" class="nav-btn flex flex-col items-center gap-1 py-1 px-2.5 text-emerald-400 transition">
         <i data-lucide="layout-grid" class="w-5 h-5"></i>
-        <span>Asosiy</span>
+        <span>Дашборд</span>
       </button>
 
-      <!-- Tab 2: Tarix -->
+      <!-- Tab 2: Журнал -->
       <button onclick="switchView('transactions')" id="nav-btn-transactions" class="nav-btn flex flex-col items-center gap-1 py-1 px-2.5 text-slate-400 hover:text-slate-200 transition">
         <i data-lucide="receipt" class="w-5 h-5"></i>
-        <span>Tarix</span>
+        <span>Журнал</span>
       </button>
 
-      <!-- Tab 3: Qarzlar -->
+      <!-- Tab 3: Дебиторы -->
       <button onclick="switchView('debts')" id="nav-btn-debts" class="nav-btn flex flex-col items-center gap-1 py-1 px-2.5 text-slate-400 hover:text-slate-200 transition">
         <i data-lucide="users" class="w-5 h-5"></i>
-        <span>Qarzlar</span>
+        <span>Дебиторы</span>
       </button>
 
-      <!-- Tab 4: Ombor -->
+      <!-- Tab 4: Склад -->
       <button onclick="switchView('products')" id="nav-btn-products" class="nav-btn flex flex-col items-center gap-1 py-1 px-2.5 text-slate-400 hover:text-slate-200 transition">
         <i data-lucide="boxes" class="w-5 h-5"></i>
-        <span>Ombor</span>
+        <span>Склад</span>
       </button>
 
-      <!-- Tab 5: Profil -->
+      <!-- Tab 5: Профиль -->
       <button onclick="switchView('profile')" id="nav-btn-profile" class="nav-btn flex flex-col items-center gap-1 py-1 px-2.5 text-slate-400 hover:text-slate-200 transition">
         <i data-lucide="user" class="w-5 h-5"></i>
-        <span>Profil</span>
+        <span>Профиль</span>
       </button>
 
     </div>
@@ -707,16 +712,13 @@
 
     function verifyPinCode() {
       if (currentPinInput === TARGET_PIN) {
-        // Success
-        if (navigator.vibrate) navigator.vibrate(25);
-        document.getElementById('owner-auth-screen').classList.add('hidden');
-        document.getElementById('pin-error').classList.add('hidden');
-        currentPinInput = '';
-        updatePinDots();
-
-        fetchDashboardData();
-        fetchDebtsData();
-        fetchProductsData();
+        unlockApp();
+        // Offer biometric prompt on iOS if not yet registered
+        if (!localStorage.getItem('medstock_bio_cred_id')) {
+          setTimeout(() => {
+            checkBiometricsSupport();
+          }, 600);
+        }
       } else {
         // Error
         if (navigator.vibrate) navigator.vibrate([40, 60, 40]);
@@ -732,11 +734,114 @@
       }
     }
 
+    function unlockApp() {
+      if (navigator.vibrate) navigator.vibrate(25);
+      document.getElementById('owner-auth-screen').classList.add('hidden');
+      document.getElementById('pin-error').classList.add('hidden');
+      currentPinInput = '';
+      updatePinDots();
+
+      fetchDashboardData();
+      fetchDebtsData();
+      fetchProductsData();
+    }
+
     function logoutOwner() {
       currentPinInput = '';
       updatePinDots();
       document.getElementById('pin-error').classList.add('hidden');
       document.getElementById('owner-auth-screen').classList.remove('hidden');
+    }
+
+    // NATIVE FACE ID / TOUCH ID (WEBAUTHN PLATFORM AUTHENTICATOR)
+    async function checkBiometricsSupport() {
+      try {
+        if (window.PublicKeyCredential && 
+            typeof PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable === 'function') {
+          return await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+        }
+      } catch (e) {
+        return false;
+      }
+      return false;
+    }
+
+    async function triggerBiometricAuth() {
+      const btn = document.getElementById('btn-face-id');
+      if (btn) btn.classList.add('animate-pulse');
+
+      try {
+        if (!window.PublicKeyCredential) {
+          alert('Ваше устройство или браузер не поддерживает Face ID / биометрию.');
+          return;
+        }
+
+        const savedCredId = localStorage.getItem('medstock_bio_cred_id');
+        const challenge = new Uint8Array(32);
+        window.crypto.getRandomValues(challenge);
+
+        if (savedCredId) {
+          // 1. Verify Face ID using saved credential
+          const rawCredId = Uint8Array.from(atob(savedCredId), c => c.charCodeAt(0));
+          const assertion = await navigator.credentials.get({
+            publicKey: {
+              challenge: challenge,
+              timeout: 60000,
+              userVerification: "required",
+              allowCredentials: [{
+                id: rawCredId,
+                type: "public-key"
+              }]
+            }
+          });
+
+          if (assertion) {
+            unlockApp();
+            return;
+          }
+        } else {
+          // 2. First-time registration of Face ID
+          const userId = new Uint8Array(16);
+          window.crypto.getRandomValues(userId);
+
+          const credential = await navigator.credentials.create({
+            publicKey: {
+              challenge: challenge,
+              rp: {
+                name: "MedStock Pro",
+                id: window.location.hostname || "localhost"
+              },
+              user: {
+                id: userId,
+                name: "abdullojhon",
+                displayName: "Абдуллочон Чабборов"
+              },
+              pubKeyCredParams: [
+                { alg: -7, type: "public-key" },  // ES256
+                { alg: -257, type: "public-key" } // RS256
+              ],
+              authenticatorSelection: {
+                authenticatorAttachment: "platform",
+                userVerification: "required"
+              },
+              timeout: 60000
+            }
+          });
+
+          if (credential) {
+            const credIdBase64 = btoa(String.fromCharCode(...new Uint8Array(credential.rawId)));
+            localStorage.setItem('medstock_bio_cred_id', credIdBase64);
+            localStorage.setItem('medstock_bio_enabled', 'true');
+            unlockApp();
+            return;
+          }
+        }
+      } catch (err) {
+        console.log('Face ID auth info:', err);
+        // If not allowed or user cancelled, just stay on PIN pad
+      } finally {
+        if (btn) btn.classList.remove('animate-pulse');
+      }
     }
 
     // Format helpers
@@ -754,7 +859,7 @@
     document.addEventListener('DOMContentLoaded', () => {
       // Set today's date formatted
       try {
-        const todayStr = new Intl.DateTimeFormat('uz-UZ', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date());
+        const todayStr = new Intl.DateTimeFormat('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date());
         const elDate = document.getElementById('dash-today-date');
         if (elDate) {
           elDate.innerText = todayStr.charAt(0).toUpperCase() + todayStr.slice(1);
@@ -764,6 +869,13 @@
       lucide.createIcons();
       // Prompt for PIN on entrance
       document.getElementById('owner-auth-screen').classList.remove('hidden');
+
+      // Auto-trigger Face ID if previously registered on this device
+      if (localStorage.getItem('medstock_bio_cred_id')) {
+        setTimeout(() => {
+          triggerBiometricAuth();
+        }, 350);
+      }
 
       // Setup Pull to Refresh gesture
       setupPullToRefresh();
@@ -805,10 +917,10 @@
           indicator.style.transform = `translateY(${currentDistance}px)`;
 
           if (currentDistance >= PULL_THRESHOLD) {
-            text.innerText = 'Yangilash uchun qo\'yib yuboring';
+            text.innerText = 'Отпустите для обновления';
             spinner.style.transform = 'rotate(180deg)';
           } else {
-            text.innerText = 'Yangilash uchun pastga torting';
+            text.innerText = 'Потяните вниз для обновления';
             spinner.style.transform = `rotate(${currentDistance * 3}deg)`;
           }
         }
@@ -820,7 +932,7 @@
 
         if (currentDistance >= PULL_THRESHOLD) {
           indicator.style.transform = `translateY(${PULL_THRESHOLD}px)`;
-          text.innerText = 'Yangilanmoqda...';
+          text.innerText = 'Обновление данных...';
           spinner.classList.add('animate-spin');
           if (navigator.vibrate) navigator.vibrate(25);
 
@@ -830,12 +942,12 @@
             fetchProductsData()
           ]);
 
-          text.innerText = 'Yangilandi!';
+          text.innerText = 'Обновлено!';
           setTimeout(() => {
             indicator.style.transform = 'translateY(-100%)';
             spinner.classList.remove('animate-spin');
             spinner.style.transform = 'none';
-            text.innerText = 'Yangilash uchun pastga torting';
+            text.innerText = 'Потяните вниз для обновления';
           }, 450);
         } else {
           indicator.style.transform = 'translateY(-100%)';
@@ -876,7 +988,7 @@
         dashboardData = data;
         renderDashboard();
       } catch (err) {
-        console.warn('Server offline yoki ma\'lumot yo\'q, nol holatda:', err);
+        console.warn('Сервер недоступен, отображаются нулевые значения базы:', err);
         renderDashboard();
       } finally {
         if (refreshIcon) setTimeout(() => refreshIcon.classList.remove('animate-spin'), 500);
@@ -896,27 +1008,27 @@
         revenueToday: { total: 0, cash: 0, cashless: 0, banks: {} }
       };
 
-      // 1. Capitalization (Ombor qiymati)
+      // 1. Capitalization (Капитализация склада)
       const elCap = document.getElementById('dash-capitalization');
       if (elCap) elCap.innerText = formatTJS(k.capitalization);
       const elProdCount = document.getElementById('dash-products-count');
-      if (elProdCount) elProdCount.innerText = `${k.productsCount || 0} ta tovar`;
+      if (elProdCount) elProdCount.innerText = `${k.productsCount || 0} позиций`;
 
-      // 2. Debts (Mijozlar qarzlari)
+      // 2. Debts (Мне должны клиенты)
       const elDebtsTotal = document.getElementById('dash-debts-total');
       if (elDebtsTotal) elDebtsTotal.innerText = formatTJS(k.totalDebts);
       const elDebtorsBadge = document.getElementById('dash-debtors-badge');
-      if (elDebtorsBadge) elDebtorsBadge.innerText = `${k.activeDebtorsCount || 0} ta qarzdor`;
+      if (elDebtorsBadge) elDebtorsBadge.innerText = `${k.activeDebtorsCount || 0} должников`;
       const elDebtsViewTotal = document.getElementById('debts-view-total');
       if (elDebtsViewTotal) elDebtsViewTotal.innerText = `${formatTJS(k.totalDebts)} TJS`;
 
-      // 3. Clinic Expense (Klinika ehtiyoji)
+      // 3. Clinic Expense (Расход клиники)
       const elClinic = document.getElementById('dash-clinic-expense');
       if (elClinic) elClinic.innerText = formatTJS(k.clinicExpenseMonth);
       const elClinicBadge = document.getElementById('dash-clinic-badge');
-      if (elClinicBadge) elClinicBadge.innerText = `${k.clinicOperationsCount || 0} ta operatsiya`;
+      if (elClinicBadge) elClinicBadge.innerText = `${k.clinicOperationsCount || 0} операций`;
 
-      // 4. Revenue Today (Bugungi tushum)
+      // 4. Revenue Today (Выручка за сегодня)
       const rev = k.revenueToday || { total: 0, cash: 0, cashless: 0, banks: {} };
       const elRevTotal = document.getElementById('dash-today-total');
       if (elRevTotal) elRevTotal.innerText = formatTJS(rev.total);
@@ -939,8 +1051,8 @@
         container.innerHTML = `
           <div class="fintech-card rounded-2xl p-5 text-center text-slate-500 text-xs border border-slate-800">
             <i data-lucide="inbox" class="w-7 h-7 text-slate-600 mx-auto mb-1.5"></i>
-            <div class="font-bold text-slate-300">Bazada operatsiyalar yo'q</div>
-            <p class="text-[11px] text-slate-500 mt-0.5">Kirim va sotuvlar kiritilgach bu yerda ko'rinadi.</p>
+            <div class="font-bold text-slate-300">В базе пока нет записей</div>
+            <p class="text-[11px] text-slate-500 mt-0.5">Операции склада появятся здесь после ввода на ПК.</p>
           </div>
         `;
         lucide.createIcons();
@@ -964,7 +1076,7 @@
         container.innerHTML = `
           <div class="fintech-card rounded-2xl p-8 text-center text-slate-500 text-xs border border-slate-800">
             <i data-lucide="inbox" class="w-8 h-8 text-slate-600 mx-auto mb-2"></i>
-            <div>Ushbu bo'limda yozuvlar topilmadi</div>
+            <div>Нет записей по данному фильтру</div>
           </div>
         `;
         lucide.createIcons();
@@ -978,20 +1090,20 @@
     function renderTxCard(tx) {
       let icon = 'shopping-bag';
       let iconColor = 'text-emerald-400 bg-emerald-500/15 border border-emerald-500/30';
-      let badgeLabel = tx.categoryBadge || 'Sotuv';
+      let badgeLabel = tx.categoryBadge || 'Продажа';
 
       if (tx.type === 'RECEIVE') {
         icon = 'box';
         iconColor = 'text-blue-400 bg-blue-500/15 border border-blue-500/30';
-        badgeLabel = 'Kirim';
+        badgeLabel = 'Приход';
       } else if (tx.type === 'CLINIC_WRITE_OFF') {
         icon = 'hospital';
         iconColor = 'text-sky-400 bg-sky-500/15 border border-sky-500/30';
-        badgeLabel = 'Klinikaga';
+        badgeLabel = 'В клинику';
       } else if (tx.paymentType === 'DEBT') {
         icon = 'clock';
         iconColor = 'text-amber-400 bg-amber-500/15 border border-amber-500/30';
-        badgeLabel = 'Nasiya';
+        badgeLabel = 'В долг';
       } else if (tx.paymentType === 'BANK_TRANSFER') {
         icon = 'credit-card';
         iconColor = 'text-teal-400 bg-teal-500/15 border border-teal-500/30';
@@ -1010,7 +1122,7 @@
                   ${badgeLabel}
                 </span>
               </div>
-              <div class="text-[11px] text-slate-400 font-medium line-clamp-1 mt-0.5">${tx.itemsSummary || 'Operatsiya tafsiloti'}</div>
+              <div class="text-[11px] text-slate-400 font-medium line-clamp-1 mt-0.5">${tx.itemsSummary || 'Детали операции'}</div>
             </div>
           </div>
           <div class="text-right shrink-0">
@@ -1052,7 +1164,7 @@
         debtsData = data.debts || [];
         renderDebtsList();
       } catch (err) {
-        console.warn('Debitorlar mavjud emas:', err);
+        console.warn('Дебиторы пока отсутствуют:', err);
       }
     }
 
@@ -1064,8 +1176,8 @@
         container.innerHTML = `
           <div class="fintech-card rounded-2xl p-8 text-center text-slate-500 text-xs border border-slate-800">
             <i data-lucide="user-check" class="w-8 h-8 text-slate-600 mx-auto mb-2"></i>
-            <div class="font-bold text-slate-300">Faol qarzdorlar yo'q</div>
-            <p class="text-[11px] text-slate-500 mt-0.5">Barcha hisob-kitoblar yopilgan yoki baza toza.</p>
+            <div class="font-bold text-slate-300">Активных должников нет</div>
+            <p class="text-[11px] text-slate-500 mt-0.5">Все расчёты закрыты или база чистая.</p>
           </div>
         `;
         lucide.createIcons();
@@ -1079,44 +1191,44 @@
               <h3 class="font-bold text-sm text-white">${d.debtor_name}</h3>
               <div class="text-xs text-slate-400 font-mono flex items-center gap-1.5 mt-0.5">
                 <i data-lucide="phone" class="w-3 h-3 text-slate-500"></i>
-                <a href="tel:${d.phone}" class="hover:underline">${d.phone || 'Raqam yo\'q'}</a>
+                <a href="tel:${d.phone}" class="hover:underline">${d.phone || 'Нет номера'}</a>
               </div>
             </div>
             <span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${d.status === 'PAID' ? 'bg-emerald-500/20 text-emerald-400' : (d.isOverdue ? 'bg-rose-500/20 text-rose-400 animate-pulse' : 'bg-amber-500/20 text-amber-400')}">
-              ${d.status === 'PAID' ? 'To\'langan' : (d.isOverdue ? `${d.daysOverdue} kun o'tgan` : 'Faol qarz')}
+              ${d.status === 'PAID' ? 'Погашен' : (d.isOverdue ? `Просрочен на ${d.daysOverdue} дн.` : 'Активный долг')}
             </span>
           </div>
 
           <div class="text-xs text-slate-300 bg-slate-800/60 p-2.5 rounded-xl border border-slate-700/40">
-            <span class="text-slate-400">Tovarlar:</span> ${d.items_summary || 'Dorilar partiyasi'}
+            <span class="text-slate-400">Товары:</span> ${d.items_summary || 'Партия медикаментов'}
             <div class="text-[10px] text-slate-500 mt-1">
-              Berilgan: ${new Date(d.issue_date).toLocaleDateString('ru-RU')} ${d.due_date ? '• Muddat: ' + new Date(d.due_date).toLocaleDateString('ru-RU') : ''}
+              Взят: ${new Date(d.issue_date).toLocaleDateString('ru-RU')} ${d.due_date ? '• Срок: ' + new Date(d.due_date).toLocaleDateString('ru-RU') : ''}
             </div>
           </div>
 
           <div class="flex items-center justify-between pt-1">
             <div>
-              <div class="text-[10px] text-slate-500 uppercase font-semibold">Qoldiq qarz:</div>
+              <div class="text-[10px] text-slate-500 uppercase font-semibold">Остаток долга:</div>
               <div class="text-lg font-black font-mono-numbers text-amber-400">${formatTJS(d.remaining_amount)} TJS</div>
             </div>
 
             <!-- Action Buttons for Owner -->
             <div class="flex items-center gap-1.5">
               ${d.phone ? `
-                <a href="tel:${d.phone}" class="p-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl" title="Qo'ng'iroq qilish">
+                <a href="tel:${d.phone}" class="p-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl" title="Позвонить">
                   <i data-lucide="phone-call" class="w-4 h-4"></i>
                 </a>
-                <a href="https://wa.me/${cleanPhoneNumber(d.phone)}" target="_blank" class="p-2.5 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 rounded-xl" title="WhatsApp orqali yozish">
+                <a href="https://wa.me/${cleanPhoneNumber(d.phone)}" target="_blank" class="p-2.5 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 rounded-xl" title="Написать в WhatsApp">
                   <i data-lucide="message-circle" class="w-4 h-4"></i>
                 </a>
-                <a href="https://t.me/+${cleanPhoneNumber(d.phone)}" target="_blank" class="p-2.5 bg-sky-500/15 hover:bg-sky-500/25 text-sky-400 rounded-xl" title="Telegram orqali yozish">
+                <a href="https://t.me/+${cleanPhoneNumber(d.phone)}" target="_blank" class="p-2.5 bg-sky-500/15 hover:bg-sky-500/25 text-sky-400 rounded-xl" title="Написать в Telegram">
                   <i data-lucide="send" class="w-4 h-4"></i>
                 </a>
               ` : ''}
 
               ${d.remaining_amount > 0 ? `
                 <button onclick="openPayModal('${d.id}')" class="px-3.5 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 text-xs font-bold rounded-xl active:scale-95 transition cursor-pointer">
-                  To'lash
+                  Погасить
                 </button>
               ` : ''}
             </div>
@@ -1134,7 +1246,7 @@
         productsData = data.products || [];
         renderPwaProducts();
       } catch (err) {
-        console.warn('Tovarlar hali mavjud emas:', err);
+        console.warn('Товары пока отсутствуют:', err);
       }
     }
 
@@ -1149,8 +1261,8 @@
         container.innerHTML = `
           <div class="fintech-card rounded-2xl p-8 text-center text-slate-500 text-xs border border-slate-800">
             <i data-lucide="package-open" class="w-8 h-8 text-slate-600 mx-auto mb-2"></i>
-            <div class="font-bold text-slate-300">Dorilar topilmadi</div>
-            <p class="text-[11px] text-slate-500 mt-0.5">Bazada hozircha mahsulot yo'q. Kompyuter orqali kiriting.</p>
+            <div class="font-bold text-slate-300">Медикаменты не найдены</div>
+            <p class="text-[11px] text-slate-500 mt-0.5">В базе пока нет товаров. Добавьте их на компьютере склада.</p>
           </div>
         `;
         lucide.createIcons();
@@ -1167,13 +1279,13 @@
               <div class="font-bold text-xs text-white line-clamp-1">${p.name}</div>
               <div class="text-[10px] text-slate-400 font-mono">${p.sku || ''} ${p.barcode ? '• ' + p.barcode : ''}</div>
               <div class="text-[11px] font-semibold text-emerald-400 mt-0.5">
-                Qoldiq: <strong>${p.stock_quantity} ${p.unit}</strong>
+                Остаток: <strong>${p.stock_quantity} ${p.unit}</strong>
               </div>
             </div>
           </div>
           <div class="text-right shrink-0">
             <div class="text-xs font-black font-mono-numbers text-white">${formatTJS(p.retail_price)} TJS</div>
-            <div class="text-[10px] text-slate-400 font-mono">Partiya: ${formatTJS(p.batch_value || (p.stock_quantity * p.retail_price))} TJS</div>
+            <div class="text-[10px] text-slate-400 font-mono">Партия: ${formatTJS(p.batch_value || (p.stock_quantity * p.retail_price))} TJS</div>
           </div>
         </div>
       `).join('');
@@ -1204,7 +1316,7 @@
       const ref = document.getElementById('pay-modal-ref').value;
 
       if (!amount || amount <= 0) {
-        alert('To\'lov summasini to\'g\'ri kiriting!');
+        alert('Введите корректную сумму погашения!');
         return;
       }
 
@@ -1222,12 +1334,12 @@
         const data = await res.json();
         if (!res.ok) throw new Error(data.error);
 
-        alert('To\'lov muvaffaqiyatli qabul qilindi!');
+        alert('Погашение успешно зафиксировано!');
         closePayModal();
         fetchDebtsData();
         fetchDashboardData();
       } catch (err) {
-        alert('Xatolik: ' + err.message);
+        alert('Ошибка: ' + err.message);
       }
     }
 
@@ -1246,7 +1358,7 @@
       if (!debt) return;
       const cleanPhone = cleanPhoneNumber(debt.phone);
 
-      document.getElementById('share-modal-debtor').innerText = `${debt.debtor_name} (${debt.phone || 'raqamsiz'})`;
+      document.getElementById('share-modal-debtor').innerText = `${debt.debtor_name} (${debt.phone || 'без номера'})`;
       document.getElementById('share-btn-wa').href = `https://wa.me/${cleanPhone}`;
       document.getElementById('share-btn-tg').href = `https://t.me/+${cleanPhone}`;
 

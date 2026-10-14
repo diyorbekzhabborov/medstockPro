@@ -94,7 +94,6 @@ app.post('/api/local/products', (req, res) => {
     const created = db.prepare('SELECT * FROM local_products WHERE id = ?').get(id);
     created.batch_value = Number((created.stock_quantity * created.retail_price).toFixed(2));
     res.status(201).json({ product: created });
-    syncToSupabaseDirect().catch(e => console.warn('[AUTO SYNC PRODUCT NOTE]:', e.message));
   } catch (err) {
     res.status(400).json({ error: 'Ошибка сохранения в базу данных: ' + err.message });
   }
@@ -222,7 +221,6 @@ app.post('/api/local/operations', (req, res) => {
     const created = db.prepare('SELECT * FROM local_operations WHERE id = ?').get(opId);
     created.items = db.prepare('SELECT * FROM local_operation_items WHERE operation_id = ?').all(opId);
     res.status(201).json({ success: true, operation: created });
-    syncToSupabaseDirect().catch(e => console.warn('[AUTO SYNC OP NOTE]:', e.message));
   } catch (err) {
     res.status(500).json({ error: 'Ошибка сохранения операции локально: ' + err.message });
   }

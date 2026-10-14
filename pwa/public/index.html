@@ -257,55 +257,57 @@
     <!-- VIEW 1: FINTECH DASHBOARD (ЛАКОНИЧНЫЙ БАНКОВСКИЙ ДИЗАЙН) -->
     <div id="view-dashboard" class="space-y-4">
 
-      <!-- 1. MASTER BANKING BALANCE CARD: ВЫРУЧКА ЗА СЕГОДНЯ -->
-      <div class="master-card rounded-3xl p-5 text-white relative overflow-hidden shadow-2xl">
+      <!-- 1. MASTER BANKING BALANCE CARD: КАПИТАЛИЗАЦИЯ СКЛАДА (ГЛАВНЫЙ БАЛАНС) -->
+      <div onclick="switchView('products')" class="master-card rounded-3xl p-5 text-white relative overflow-hidden shadow-2xl cursor-pointer active:scale-98 transition" title="Открыть каталог товаров">
         <!-- Subtle ambient decorative glow -->
-        <div class="absolute -right-8 -top-8 w-40 h-40 bg-emerald-400/15 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="absolute -right-8 -top-8 w-40 h-40 bg-teal-400/20 rounded-full blur-3xl pointer-events-none"></div>
 
         <div class="relative z-10 space-y-3.5">
           <!-- Card Header -->
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
-              <span class="w-2 h-2 rounded-full bg-emerald-300 animate-pulse"></span>
-              <span class="text-xs font-bold uppercase tracking-wider text-emerald-200">Выручка за сегодня</span>
+              <span class="w-2 h-2 rounded-full bg-teal-300 animate-pulse"></span>
+              <span class="text-xs font-bold uppercase tracking-wider text-teal-200">Капитализация склада</span>
             </div>
-            <span class="px-2.5 py-0.5 rounded-full bg-black/25 text-[10px] font-bold text-emerald-200 border border-white/10">
+            <span class="px-2.5 py-0.5 rounded-full bg-black/25 text-[10px] font-bold text-teal-200 border border-white/10">
               TJS • Сомони
             </span>
           </div>
 
-          <!-- Main Amount (Starts at 0.00 TJS) -->
+          <!-- Main Amount (Капитализация) -->
           <div class="pt-0.5">
             <div class="text-3xl font-black font-mono-numbers tracking-tight text-white flex items-baseline gap-2">
-              <span id="dash-today-total">0.00</span>
-              <span class="text-xl font-bold text-emerald-300">TJS</span>
+              <span id="dash-capitalization">0.00</span>
+              <span class="text-xl font-bold text-teal-300">TJS</span>
             </div>
-            <div class="text-[11px] text-emerald-100/80 mt-1 flex items-center gap-2 font-medium">
-              <span id="dash-today-date">Сегодня</span>
+            <div class="text-[11px] text-teal-100/80 mt-1 flex items-center gap-2 font-medium">
+              <span id="dash-products-count">0 позиций</span>
               <span>•</span>
-              <span>Касса открыта</span>
+              <span id="dash-total-units">0 ед. товара</span>
+              <span>•</span>
+              <span class="text-teal-200 font-bold">На балансе</span>
             </div>
           </div>
 
-          <!-- Sub-pills: Наличные & Безнал / Банк -->
+          <!-- Sub-pills: Номенклатура & Единиц на складе -->
           <div class="grid grid-cols-2 gap-2.5 pt-3 border-t border-white/15">
             <div class="bg-black/25 rounded-2xl p-2.5 flex items-center gap-2.5 border border-white/5">
-              <div class="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-300 flex items-center justify-center shrink-0">
-                <i data-lucide="banknote" class="w-4 h-4"></i>
+              <div class="w-8 h-8 rounded-xl bg-teal-500/20 text-teal-300 flex items-center justify-center shrink-0">
+                <i data-lucide="boxes" class="w-4 h-4"></i>
               </div>
               <div class="overflow-hidden">
-                <div class="text-[10px] text-slate-300 font-medium">Наличные (Касса)</div>
-                <div class="text-xs font-bold font-mono-numbers text-white truncate"><span id="dash-today-cash">0.00</span> TJS</div>
+                <div class="text-[10px] text-slate-300 font-medium">Номенклатура</div>
+                <div class="text-xs font-bold font-mono-numbers text-white truncate"><span id="dash-master-positions">0</span> поз.</div>
               </div>
             </div>
 
             <div class="bg-black/25 rounded-2xl p-2.5 flex items-center gap-2.5 border border-white/5">
-              <div class="w-8 h-8 rounded-xl bg-teal-500/20 text-teal-300 flex items-center justify-center shrink-0">
-                <i data-lucide="credit-card" class="w-4 h-4"></i>
+              <div class="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-300 flex items-center justify-center shrink-0">
+                <i data-lucide="package" class="w-4 h-4"></i>
               </div>
               <div class="overflow-hidden">
-                <div class="text-[10px] text-slate-300 font-medium">Безнал (Банки)</div>
-                <div class="text-xs font-bold font-mono-numbers text-white truncate"><span id="dash-today-cashless">0.00</span> TJS</div>
+                <div class="text-[10px] text-slate-300 font-medium">Всего на складе</div>
+                <div class="text-xs font-bold font-mono-numbers text-white truncate"><span id="dash-master-units">0</span> шт.</div>
               </div>
             </div>
           </div>
@@ -344,28 +346,28 @@
         </button>
       </div>
 
-      <!-- 3. TWO CLEAR SUMMARY TILES: КАПИТАЛИЗАЦИЯ СКЛАДА & ДОЛГИ КЛИЕНТОВ -->
+      <!-- 3. TWO CLEAR SUMMARY TILES: ОБЩАЯ ВЫРУЧКА & ДОЛГИ КЛИЕНТОВ -->
       <div class="grid grid-cols-2 gap-3">
         
-        <!-- CARD 1: КАПИТАЛИЗАЦИЯ СКЛАДА -->
-        <div onclick="switchView('products')" class="fintech-card rounded-3xl p-4 flex flex-col justify-between cursor-pointer active:scale-98 transition hover:border-teal-500/40">
+        <!-- CARD 1: ОБЩАЯ ВЫРУЧКА (ВЫРУЧКА ОТ ПРОДАЖ ЗА ВСЁ ВРЕМЯ) -->
+        <div onclick="switchView('transactions')" class="fintech-card rounded-3xl p-4 flex flex-col justify-between cursor-pointer active:scale-98 transition hover:border-emerald-500/40">
           <div>
             <div class="flex items-center justify-between mb-2">
-              <div class="w-8 h-8 rounded-xl bg-teal-500/15 text-teal-400 flex items-center justify-center">
-                <i data-lucide="boxes" class="w-4 h-4"></i>
+              <div class="w-8 h-8 rounded-xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center">
+                <i data-lucide="wallet" class="w-4 h-4"></i>
               </div>
-              <span class="text-[10px] font-bold text-teal-400 bg-teal-500/10 px-2 py-0.5 rounded-full border border-teal-500/20" id="dash-products-count">
-                0 позиций
+              <span class="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20 truncate max-w-[100px]" id="dash-today-badge">
+                Сегодня: <span id="dash-today-total">0.00</span>
               </span>
             </div>
-            <div class="text-[11px] font-medium text-slate-400">Капитализация склада</div>
+            <div class="text-[11px] font-medium text-slate-400">Общая выручка</div>
             <div class="text-lg font-black font-mono-numbers text-white mt-1">
-              <span id="dash-capitalization">0.00</span> <span class="text-xs font-bold text-teal-400">TJS</span>
+              <span id="dash-revenue-total">0.00</span> <span class="text-xs font-bold text-emerald-400">TJS</span>
             </div>
           </div>
-          <div class="text-[10px] text-teal-400/90 font-semibold pt-2 border-t border-slate-800/80 mt-2.5 flex items-center justify-between">
-            <span>Открыть склад</span>
-            <span>→</span>
+          <div class="text-[10px] text-slate-400 font-medium pt-2 border-t border-slate-800/80 mt-2.5 flex items-center justify-between">
+            <span class="truncate">Нал: <span id="dash-rev-cash-mini" class="text-slate-200 font-bold">0.00</span> • Банк: <span id="dash-rev-bank-mini" class="text-slate-200 font-bold">0.00</span></span>
+            <span class="text-emerald-400 ml-1">→</span>
           </div>
         </div>
 
@@ -1047,8 +1049,20 @@
       let clinicExpenseMonth = 0;
       let clinicOperationsCount = 0;
 
-      // 4. Revenue Today
+      // 4. Revenue Today & Total All-Time Revenue
       const revenueToday = {
+        total: 0,
+        cash: 0,
+        cashless: 0,
+        banks: {
+          'Dushanbe City (DC)': 0,
+          'Банк Эсхата': 0,
+          'Алиф Банк / Alif Mobi': 0,
+          'Амонатбонк / Другой банк': 0
+        }
+      };
+
+      const revenueTotal = {
         total: 0,
         cash: 0,
         cashless: 0,
@@ -1072,6 +1086,19 @@
           clinicOperationsCount += 1;
           const opItemCost = opItems.reduce((s, it) => s + (Number(it.quantity) * Number(it.unit_price)), 0);
           clinicExpenseMonth += opItemCost;
+        }
+
+        // All-time sales revenue
+        if (op.type === 'SALE') {
+          revenueTotal.total += amount;
+          if (op.payment_type === 'CASH') {
+            revenueTotal.cash += amount;
+          } else if (op.payment_type === 'BANK_TRANSFER') {
+            revenueTotal.cashless += amount;
+            const b = op.bank_name || 'Dushanbe City (DC)';
+            if (!revenueTotal.banks[b]) revenueTotal.banks[b] = 0;
+            revenueTotal.banks[b] += amount;
+          }
         }
 
         // Revenue today
@@ -1124,6 +1151,12 @@
             cash: Number(revenueToday.cash.toFixed(2)),
             cashless: Number(revenueToday.cashless.toFixed(2)),
             banks: revenueToday.banks
+          },
+          revenueTotal: {
+            total: Number(revenueTotal.total.toFixed(2)),
+            cash: Number(revenueTotal.cash.toFixed(2)),
+            cashless: Number(revenueTotal.cashless.toFixed(2)),
+            banks: revenueTotal.banks
           }
         },
         transactions
@@ -1188,16 +1221,44 @@
         activeDebtorsCount: 0,
         clinicExpenseMonth: 0,
         clinicOperationsCount: 0,
-        revenueToday: { total: 0, cash: 0, cashless: 0, banks: {} }
+        revenueToday: { total: 0, cash: 0, cashless: 0, banks: {} },
+        revenueTotal: { total: 0, cash: 0, cashless: 0, banks: {} }
       };
 
-      // 1. Capitalization (Капитализация склада)
+      // 1. Capitalization (Капитализация склада - ГЛАВНЫЙ БАЛАНС НАВЕРХУ)
       const elCap = document.getElementById('dash-capitalization');
       if (elCap) elCap.innerText = formatTJS(k.capitalization);
       const elProdCount = document.getElementById('dash-products-count');
       if (elProdCount) elProdCount.innerText = `${k.productsCount || 0} позиций`;
+      const elTotalUnits = document.getElementById('dash-total-units');
+      if (elTotalUnits) elTotalUnits.innerText = `${k.totalUnits || 0} ед. товара`;
+      const elMasterPos = document.getElementById('dash-master-positions');
+      if (elMasterPos) elMasterPos.innerText = `${k.productsCount || 0}`;
+      const elMasterUnits = document.getElementById('dash-master-units');
+      if (elMasterUnits) elMasterUnits.innerText = `${k.totalUnits || 0}`;
 
-      // 2. Debts (Мне должны клиенты)
+      // 2. Revenue (ОБЩАЯ ВЫРУЧКА СНИЗУ + СЕГОДНЯ)
+      const revTot = k.revenueTotal || { total: 0, cash: 0, cashless: 0, banks: {} };
+      const revTod = k.revenueToday || { total: 0, cash: 0, cashless: 0, banks: {} };
+
+      const elRevTot = document.getElementById('dash-revenue-total');
+      if (elRevTot) elRevTot.innerText = formatTJS(revTot.total);
+
+      const elTodayTot = document.getElementById('dash-today-total');
+      if (elTodayTot) elTodayTot.innerText = formatTJS(revTod.total);
+
+      const elRevCashMini = document.getElementById('dash-rev-cash-mini');
+      if (elRevCashMini) elRevCashMini.innerText = formatTJS(revTot.cash);
+
+      const elRevBankMini = document.getElementById('dash-rev-bank-mini');
+      if (elRevBankMini) elRevBankMini.innerText = formatTJS(revTot.cashless);
+
+      const elRevCash = document.getElementById('dash-today-cash');
+      if (elRevCash) elRevCash.innerText = formatTJS(revTod.cash);
+      const elRevCashless = document.getElementById('dash-today-cashless');
+      if (elRevCashless) elRevCashless.innerText = formatTJS(revTod.cashless);
+
+      // 3. Debts (Мне должны клиенты)
       const elDebtsTotal = document.getElementById('dash-debts-total');
       if (elDebtsTotal) elDebtsTotal.innerText = formatTJS(k.totalDebts);
       const elDebtorsBadge = document.getElementById('dash-debtors-badge');
@@ -1205,20 +1266,11 @@
       const elDebtsViewTotal = document.getElementById('debts-view-total');
       if (elDebtsViewTotal) elDebtsViewTotal.innerText = `${formatTJS(k.totalDebts)} TJS`;
 
-      // 3. Clinic Expense (Расход клиники)
+      // 4. Clinic Expense (Расход клиники)
       const elClinic = document.getElementById('dash-clinic-expense');
       if (elClinic) elClinic.innerText = formatTJS(k.clinicExpenseMonth);
       const elClinicBadge = document.getElementById('dash-clinic-badge');
       if (elClinicBadge) elClinicBadge.innerText = `${k.clinicOperationsCount || 0} операций`;
-
-      // 4. Revenue Today (Выручка за сегодня)
-      const rev = k.revenueToday || { total: 0, cash: 0, cashless: 0, banks: {} };
-      const elRevTotal = document.getElementById('dash-today-total');
-      if (elRevTotal) elRevTotal.innerText = formatTJS(rev.total);
-      const elRevCash = document.getElementById('dash-today-cash');
-      if (elRevCash) elRevCash.innerText = formatTJS(rev.cash);
-      const elRevCashless = document.getElementById('dash-today-cashless');
-      if (elRevCashless) elRevCashless.innerText = formatTJS(rev.cashless);
 
       // 5. Recent Activity
       const txs = (dashboardData && dashboardData.transactions) ? dashboardData.transactions : [];

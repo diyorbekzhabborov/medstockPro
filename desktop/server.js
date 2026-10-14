@@ -632,6 +632,41 @@ app.get('/api/analytics/dashboard', (req, res) => {
     }
   }
 
+  // 4b. Revenue All-Time (Общая выручка от продаж за всё время)
+  const allTimeOps = db.prepare(`
+    SELECT payment_type, bank_name, SUM(total_amount) as sum_amount, COUNT(*) as cnt
+    FROM local_operations
+    WHERE type = 'SALE'
+    GROUP BY payment_type, bank_name
+  `).all();
+
+  let revenueTotal = {
+    total: 0,
+    cash: 0,
+    cashless: 0,
+    banks: {
+      'Dushanbe City (DC)': 0,
+      'Банк Эсхата': 0,
+      'Алиф Банк / Alif Mobi': 0,
+      'Амонатбонк / Другой банк': 0
+    }
+  };
+
+  for (const row of allTimeOps) {
+    const amt = Number(row.sum_amount) || 0;
+    revenueTotal.total += amt;
+    if (row.payment_type === 'CASH') {
+      revenueTotal.cash += amt;
+    } else if (row.payment_type === 'BANK_TRANSFER') {
+      revenueTotal.cashless += amt;
+      if (row.bank_name && revenueTotal.banks[row.bank_name] !== undefined) {
+        revenueTotal.banks[row.bank_name] += amt;
+      } else if (row.bank_name) {
+        revenueTotal.banks[row.bank_name] = amt;
+      }
+    }
+  }
+
   // 5. Recent operations
   const recentOps = db.prepare(`
     SELECT o.*,
@@ -708,7 +743,8 @@ app.get('/api/analytics/dashboard', (req, res) => {
     activeDebtorsCount: debtRow.active_debtors_count || 0,
     clinicExpenseMonth,
     clinicOperationsCount: clinicRow.clinic_operations_count || 0,
-    revenueToday
+    revenueToday,
+    revenueTotal
   };
 
   res.json({

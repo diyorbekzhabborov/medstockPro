@@ -492,6 +492,30 @@ async function syncToSupabaseDirect() {
       });
     }
 
+    // 3ca. Debt Payments
+    try {
+      const unsyncedPayments = db.prepare('SELECT * FROM local_debt_payments WHERE sync_pending = 1').all();
+      if (unsyncedPayments.length > 0) {
+        await fetch(`${SUPABASE_URL}/rest/v1/debt_payments`, {
+          method: 'POST',
+          headers: sbHeaders,
+          body: JSON.stringify(unsyncedPayments.map(p => ({
+            id: p.id,
+            debt_id: p.debt_id,
+            amount: p.amount,
+            payment_method: p.payment_method,
+            transaction_reference: p.transaction_reference || null,
+            notes: p.notes || null,
+            created_at: p.created_at || new Date().toISOString()
+          }))),
+          signal: AbortSignal.timeout(8000)
+        });
+        db.prepare('UPDATE local_debt_payments SET sync_pending = 0').run();
+      }
+    } catch (paySyncErr) {
+      console.log('[SUPABASE PAYMENTS SYNC NOTE]:', paySyncErr.message);
+    }
+
     // 3d. Pull remote debt updates from Supabase (e.g. debt repaid on mobile PWA)
     try {
       const pullRes = await fetch(`${SUPABASE_URL}/rest/v1/debts?select=*`, {
@@ -503,7 +527,7 @@ async function syncToSupabaseDirect() {
         if (Array.isArray(remoteDebts)) {
           const updateLocalDebt = db.prepare(`
             UPDATE local_debts 
-            SET remaining_amount = ?, status = ?, updated_at = ?
+            SET remaining_amount = ?, status = ?, updated_at = ?, sync_pending = 0
             WHERE id = ?
           `);
           for (const rd of remoteDebts) {
@@ -513,6 +537,45 @@ async function syncToSupabaseDirect() {
       }
     } catch (pullErr) {
       console.log('[SUPABASE PULL NOTE]:', pullErr.message);
+    }
+
+    // 3e. Pull remote operations from Supabase (e.g. debt repayment operations created on mobile)
+    try {
+      const pullOps = await fetch(`${SUPABASE_URL}/rest/v1/operations?select=*&order=created_at.desc&limit=100`, {
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
+        signal: AbortSignal.timeout(5000)
+      });
+      if (pullOps.ok) {
+        const remoteOps = await pullOps.json();
+        if (Array.isArray(remoteOps)) {
+          const insertLocalOp = db.prepare(`
+            INSERT OR IGNORE INTO local_operations (
+              id, operation_code, type, payment_type, bank_name, transaction_reference,
+              total_amount, counterparty_name, counterparty_phone, due_date, status, notes, created_by, created_at, sync_pending
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+          `);
+          for (const rop of remoteOps) {
+            insertLocalOp.run(
+              rop.id,
+              rop.operation_code || 'OP',
+              rop.type || 'SALE',
+              rop.payment_type || 'CASH',
+              rop.bank_name || null,
+              rop.transaction_reference || null,
+              Number(rop.total_amount) || 0,
+              rop.counterparty_name || null,
+              rop.counterparty_phone || null,
+              rop.due_date || null,
+              rop.status || 'PAID',
+              rop.notes || null,
+              rop.created_by || 'Владелец (Моб)',
+              rop.created_at || new Date().toISOString()
+            );
+          }
+        }
+      }
+    } catch (pullOpsErr) {
+      console.log('[SUPABASE PULL OPS NOTE]:', pullOpsErr.message);
     }
   } catch (sbErr) {
     console.log('[SUPABASE SYNC NOTE]:', sbErr.message);
@@ -776,22 +839,58 @@ app.get('/api/debts', (req, res) => {
 
 // POST /api/debts/:id/pay
 app.post('/api/debts/:id/pay', (req, res) => {
-  const { amount, paymentMethod = 'CASH', notes = '' } = req.body;
+  const { amount, paymentMethod, payment_method, notes = '', transaction_reference, ref } = req.body;
   const debt = db.prepare('SELECT * FROM local_debts WHERE id = ?').get(req.params.id);
   if (!debt) return res.status(404).json({ error: 'Долг не найден' });
 
   const payAmt = Number(amount) || 0;
-  const newRemaining = Math.max(0, debt.remaining_amount - payAmt);
+  if (payAmt <= 0) return res.status(400).json({ error: 'Некорректная сумма оплаты' });
+
+  const method = payment_method || paymentMethod || 'CASH';
+  const reference = transaction_reference || ref || null;
+  const newRemaining = Math.max(0, Number((debt.remaining_amount - payAmt).toFixed(2)));
   const newStatus = newRemaining === 0 ? 'PAID' : 'PARTIALLY_PAID';
+
+  const paymentId = 'pay-loc-' + Date.now();
+  db.prepare(`
+    INSERT INTO local_debt_payments (id, debt_id, amount, payment_method, transaction_reference, notes, created_at, sync_pending)
+    VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, 1)
+  `).run(paymentId, debt.id, payAmt, method, reference, notes || `Погашение долга: ${debt.debtor_name}`);
 
   db.prepare(`
     UPDATE local_debts
-    SET remaining_amount = ?, status = ?, updated_at = CURRENT_TIMESTAMP
+    SET remaining_amount = ?, status = ?, updated_at = CURRENT_TIMESTAMP, sync_pending = 1
     WHERE id = ?
   `).run(newRemaining, newStatus, debt.id);
 
+  // Accounting: insert into local_operations
+  const opId = 'op-pay-' + Date.now();
+  const countRow = db.prepare('SELECT COUNT(*) as cnt FROM local_operations').get();
+  const nextCode = (1045 + countRow.cnt).toString();
+
+  const isCash = (method === 'CASH');
+  db.prepare(`
+    INSERT INTO local_operations (
+      id, operation_code, type, payment_type, bank_name, transaction_reference,
+      total_amount, counterparty_name, counterparty_phone, status, notes, created_by, created_at, sync_pending
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, 1)
+  `).run(
+    opId,
+    nextCode,
+    'SALE',
+    isCash ? 'CASH' : 'BANK_TRANSFER',
+    isCash ? null : method,
+    reference,
+    payAmt,
+    debt.debtor_name,
+    debt.phone || null,
+    'PAID',
+    `Погашение долга от ${debt.debtor_name}${reference ? ' (чек ' + reference + ')' : ''}`,
+    'Владелец / Касса'
+  );
+
   const updated = db.prepare('SELECT * FROM local_debts WHERE id = ?').get(debt.id);
-  res.json({ success: true, debt: updated });
+  res.json({ success: true, debt: updated, paymentId, operationId: opId });
 });
 
 // GET /api/debts/:id/reminder-text

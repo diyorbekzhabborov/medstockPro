@@ -395,6 +395,76 @@
 
       </div>
 
+      <!-- 3b. БАНКОВСКИЕ СЧЕТА И КАССА (РАСПРЕДЕЛЕНИЕ ВЫРУЧКИ) -->
+      <div class="fintech-card rounded-3xl p-4 border border-slate-800 space-y-3">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <div class="w-6 h-6 rounded-lg bg-teal-500/20 text-teal-400 flex items-center justify-center">
+              <i data-lucide="landmark" class="w-3.5 h-3.5"></i>
+            </div>
+            <span class="text-xs font-bold text-white uppercase tracking-wider">Счета и касса</span>
+          </div>
+          <span class="text-[10px] font-semibold text-slate-400">Поступления</span>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 text-xs">
+          <!-- Касса (Наличные) -->
+          <div class="p-2.5 bg-slate-800/60 rounded-2xl border border-slate-700/40">
+            <div class="flex items-center gap-1.5 text-emerald-400">
+              <i data-lucide="banknote" class="w-3.5 h-3.5"></i>
+              <span class="font-bold text-[11px]">Касса (Наличные)</span>
+            </div>
+            <div class="text-sm font-black font-mono-numbers text-white mt-1">
+              <span id="bank-cash-val">0.00</span> <span class="text-[10px] text-emerald-400">TJS</span>
+            </div>
+          </div>
+
+          <!-- Dushanbe City -->
+          <div class="p-2.5 bg-slate-800/60 rounded-2xl border border-slate-700/40">
+            <div class="flex items-center gap-1.5 text-pink-400">
+              <i data-lucide="credit-card" class="w-3.5 h-3.5"></i>
+              <span class="font-bold text-[11px] truncate">Dushanbe City</span>
+            </div>
+            <div class="text-sm font-black font-mono-numbers text-white mt-1">
+              <span id="bank-dc-val">0.00</span> <span class="text-[10px] text-pink-400">TJS</span>
+            </div>
+          </div>
+
+          <!-- Алиф Банк -->
+          <div class="p-2.5 bg-slate-800/60 rounded-2xl border border-slate-700/40">
+            <div class="flex items-center gap-1.5 text-teal-400">
+              <i data-lucide="smartphone" class="w-3.5 h-3.5"></i>
+              <span class="font-bold text-[11px] truncate">Алиф Банк</span>
+            </div>
+            <div class="text-sm font-black font-mono-numbers text-white mt-1">
+              <span id="bank-alif-val">0.00</span> <span class="text-[10px] text-teal-400">TJS</span>
+            </div>
+          </div>
+
+          <!-- Банк Эсхата -->
+          <div class="p-2.5 bg-slate-800/60 rounded-2xl border border-slate-700/40">
+            <div class="flex items-center gap-1.5 text-sky-400">
+              <i data-lucide="credit-card" class="w-3.5 h-3.5"></i>
+              <span class="font-bold text-[11px] truncate">Банк Эсхата</span>
+            </div>
+            <div class="text-sm font-black font-mono-numbers text-white mt-1">
+              <span id="bank-eskhata-val">0.00</span> <span class="text-[10px] text-sky-400">TJS</span>
+            </div>
+          </div>
+
+          <!-- Амонатбонк -->
+          <div class="col-span-2 p-2.5 bg-slate-800/60 rounded-2xl border border-slate-700/40 flex items-center justify-between">
+            <div class="flex items-center gap-1.5 text-green-400">
+              <i data-lucide="landmark" class="w-3.5 h-3.5"></i>
+              <span class="font-bold text-[11px]">Амонатбонк / Другие банки</span>
+            </div>
+            <div class="text-sm font-black font-mono-numbers text-white">
+              <span id="bank-amonat-val">0.00</span> <span class="text-[10px] text-green-400">TJS</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- 4. COMPACT CLINIC EXPENSE TILE -->
       <div onclick="filterTransactions('CLINIC_WRITE_OFF')" class="fintech-card rounded-2xl p-3.5 flex items-center justify-between cursor-pointer active:scale-98 transition hover:border-sky-500/40">
         <div class="flex items-center gap-3">
@@ -587,7 +657,7 @@
             <option value="Dushanbe City (DC)">Dushanbe City (DC)</option>
             <option value="Алиф Банк / Alif Mobi">Алиф Банк / Alif Mobi</option>
             <option value="Банк Эсхата">Банк Эсхата</option>
-            <option value="Амонатбонк">Амонатбонк</option>
+            <option value="Амонатбонк / Другой банк">Амонатбонк / Другой банк</option>
           </select>
         </div>
 
@@ -1000,8 +1070,22 @@
         const text = await res.text();
         throw new Error(`Supabase [${res.status}]: ${text}`);
       }
-      if (res.status === 204) return null;
-      return await res.json();
+      const text = await res.text();
+      if (!text || !text.trim()) return null;
+      try {
+        return JSON.parse(text);
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function normalizeBankName(name) {
+      if (!name) return 'Dushanbe City (DC)';
+      if (name.includes('Амонат')) return 'Амонатбонк / Другой банк';
+      if (name.includes('Алиф')) return 'Алиф Банк / Alif Mobi';
+      if (name.includes('Эсхата')) return 'Банк Эсхата';
+      if (name.includes('Dushanbe') || name.includes('DC')) return 'Dushanbe City (DC)';
+      return name;
     }
 
     function isSameDay(d1, d2) {
@@ -1028,12 +1112,13 @@
         totalUnits += qty;
       });
 
-      // 2. Debts
+      // 2. Debts (Активные должники: остаток > 0 и статус не PAID)
       let totalDebts = 0;
       let activeDebtorsCount = 0;
       (debts || []).forEach(d => {
-        if (d.status !== 'PAID') {
-          totalDebts += Number(d.remaining_amount) || 0;
+        const rem = Number(d.remaining_amount) || 0;
+        if (d.status !== 'PAID' && rem > 0) {
+          totalDebts += rem;
           activeDebtorsCount += 1;
         }
       });
@@ -1088,27 +1173,27 @@
           clinicExpenseMonth += opItemCost;
         }
 
-        // All-time sales revenue
-        if (op.type === 'SALE') {
+        // All-time sales revenue (Учитываем оплаченные продажи и погашения долга, исключаем неоплаченную дебиторку)
+        if (op.type === 'SALE' && op.payment_type !== 'DEBT') {
           revenueTotal.total += amount;
           if (op.payment_type === 'CASH') {
             revenueTotal.cash += amount;
           } else if (op.payment_type === 'BANK_TRANSFER') {
             revenueTotal.cashless += amount;
-            const b = op.bank_name || 'Dushanbe City (DC)';
+            const b = normalizeBankName(op.bank_name);
             if (!revenueTotal.banks[b]) revenueTotal.banks[b] = 0;
             revenueTotal.banks[b] += amount;
           }
         }
 
         // Revenue today
-        if (op.type === 'SALE' && isSameDay(opDate, now)) {
+        if (op.type === 'SALE' && op.payment_type !== 'DEBT' && isSameDay(opDate, now)) {
           revenueToday.total += amount;
           if (op.payment_type === 'CASH') {
             revenueToday.cash += amount;
           } else if (op.payment_type === 'BANK_TRANSFER') {
             revenueToday.cashless += amount;
-            const b = op.bank_name || 'Dushanbe City (DC)';
+            const b = normalizeBankName(op.bank_name);
             if (!revenueToday.banks[b]) revenueToday.banks[b] = 0;
             revenueToday.banks[b] += amount;
           }
@@ -1117,6 +1202,21 @@
         const summary = opItems.length > 0 
           ? opItems.map(it => `${it.product_name} (${it.quantity} шт.)`).join(', ')
           : (op.notes || 'Операция склада');
+
+        let categoryBadge = 'Продажа';
+        if (op.operation_code && (op.operation_code.startsWith('PAY-') || op.operation_code.includes('PAY'))) {
+          categoryBadge = `Погашение (${op.bank_name || 'Касса'})`;
+        } else if (op.type === 'CLINIC_WRITE_OFF') {
+          categoryBadge = 'Расход клиники';
+        } else if (op.type === 'RECEIVE') {
+          categoryBadge = 'Приход';
+        } else if (op.payment_type === 'DEBT') {
+          categoryBadge = `В долг (${op.counterparty_name || 'Клиент'})`;
+        } else if (op.payment_type === 'BANK_TRANSFER') {
+          categoryBadge = op.bank_name || 'Безнал';
+        } else {
+          categoryBadge = 'Продажа (Касса)';
+        }
 
         transactions.push({
           id: op.id,
@@ -1131,9 +1231,7 @@
           createdAt: op.created_at,
           items: opItems,
           itemsSummary: summary,
-          categoryBadge: op.type === 'SALE' 
-            ? (op.payment_type === 'DEBT' ? 'Долг' : 'Продажа') 
-            : (op.type === 'CLINIC_WRITE_OFF' ? 'Расход клиники' : 'Приход')
+          categoryBadge
         });
       });
 
@@ -1253,6 +1351,19 @@
       const elRevBankMini = document.getElementById('dash-rev-bank-mini');
       if (elRevBankMini) elRevBankMini.innerText = formatTJS(revTot.cashless);
 
+      // Bank accounts breakdown values
+      const bVals = revTot.banks || {};
+      const elBankCash = document.getElementById('bank-cash-val');
+      if (elBankCash) elBankCash.innerText = formatTJS(revTot.cash);
+      const elBankDC = document.getElementById('bank-dc-val');
+      if (elBankDC) elBankDC.innerText = formatTJS(bVals['Dushanbe City (DC)'] || 0);
+      const elBankAlif = document.getElementById('bank-alif-val');
+      if (elBankAlif) elBankAlif.innerText = formatTJS(bVals['Алиф Банк / Alif Mobi'] || 0);
+      const elBankEskhata = document.getElementById('bank-eskhata-val');
+      if (elBankEskhata) elBankEskhata.innerText = formatTJS(bVals['Банк Эсхата'] || 0);
+      const elBankAmonat = document.getElementById('bank-amonat-val');
+      if (elBankAmonat) elBankAmonat.innerText = formatTJS(bVals['Амонатбонк / Другой банк'] || 0);
+
       const elRevCash = document.getElementById('dash-today-cash');
       if (elRevCash) elRevCash.innerText = formatTJS(revTod.cash);
       const elRevCashless = document.getElementById('dash-today-cashless');
@@ -1327,7 +1438,11 @@
       let iconColor = 'text-emerald-400 bg-emerald-500/15 border border-emerald-500/30';
       let badgeLabel = tx.categoryBadge || 'Продажа';
 
-      if (tx.type === 'RECEIVE') {
+      if (tx.operationCode && (tx.operationCode.startsWith('PAY-') || tx.operationCode.includes('PAY'))) {
+        icon = 'check-circle-2';
+        iconColor = 'text-emerald-400 bg-emerald-500/20 border border-emerald-500/40';
+        badgeLabel = tx.categoryBadge || 'Погашение долга';
+      } else if (tx.type === 'RECEIVE') {
         icon = 'box';
         iconColor = 'text-blue-400 bg-blue-500/15 border border-blue-500/30';
         badgeLabel = 'Приход';
@@ -1338,10 +1453,11 @@
       } else if (tx.paymentType === 'DEBT') {
         icon = 'clock';
         iconColor = 'text-amber-400 bg-amber-500/15 border border-amber-500/30';
-        badgeLabel = 'В долг';
+        badgeLabel = tx.categoryBadge || 'В долг';
       } else if (tx.paymentType === 'BANK_TRANSFER') {
         icon = 'credit-card';
         iconColor = 'text-teal-400 bg-teal-500/15 border border-teal-500/30';
+        badgeLabel = tx.bankName || 'Безнал';
       }
 
       return `
@@ -1442,7 +1558,9 @@
       const container = document.getElementById('debts-list-container');
       if (!container) return;
 
-      if (debtsData.length === 0) {
+      const activeDebts = (debtsData || []).filter(d => Number(d.remaining_amount) > 0 && d.status !== 'PAID');
+
+      if (activeDebts.length === 0) {
         container.innerHTML = `
           <div class="fintech-card rounded-2xl p-8 text-center text-slate-500 text-xs border border-slate-800">
             <i data-lucide="user-check" class="w-8 h-8 text-slate-600 mx-auto mb-2"></i>
@@ -1454,7 +1572,7 @@
         return;
       }
 
-      container.innerHTML = debtsData.map(d => `
+      container.innerHTML = activeDebts.map(d => `
         <div class="fintech-card rounded-2xl border border-slate-800 p-4 space-y-3">
           <div class="flex justify-between items-start">
             <div>
@@ -1464,8 +1582,8 @@
                 <a href="tel:${d.phone}" class="hover:underline">${d.phone || 'Нет номера'}</a>
               </div>
             </div>
-            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${d.status === 'PAID' ? 'bg-emerald-500/20 text-emerald-400' : (d.isOverdue ? 'bg-rose-500/20 text-rose-400 animate-pulse' : 'bg-amber-500/20 text-amber-400')}">
-              ${d.status === 'PAID' ? 'Погашен' : (d.isOverdue ? `Просрочен на ${d.daysOverdue} дн.` : 'Активный долг')}
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${d.isOverdue ? 'bg-rose-500/20 text-rose-400 animate-pulse' : 'bg-amber-500/20 text-amber-400'}">
+              ${d.isOverdue ? `Просрочен на ${d.daysOverdue} дн.` : 'Активный долг'}
             </span>
           </div>
 
@@ -1496,11 +1614,9 @@
                 </a>
               ` : ''}
 
-              ${d.remaining_amount > 0 ? `
-                <button onclick="openPayModal('${d.id}')" class="px-3.5 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 text-xs font-bold rounded-xl active:scale-95 transition cursor-pointer">
-                  Погасить
-                </button>
-              ` : ''}
+              <button onclick="openPayModal('${d.id}')" class="px-3.5 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 text-xs font-bold rounded-xl active:scale-95 transition cursor-pointer">
+                Погасить
+              </button>
             </div>
           </div>
         </div>
@@ -1605,7 +1721,7 @@
       if (!activeDebtToPay) return;
       const amount = parseFloat(document.getElementById('pay-modal-amount').value);
       const method = document.getElementById('pay-modal-method').value;
-      const ref = document.getElementById('pay-modal-ref').value;
+      const ref = (document.getElementById('pay-modal-ref').value || '').trim();
 
       if (!amount || amount <= 0) {
         alert('Введите корректную сумму погашения!');
@@ -1614,6 +1730,7 @@
 
       const newRemaining = Number((activeDebtToPay.remaining_amount - amount).toFixed(2));
       const newStatus = newRemaining <= 0 ? 'PAID' : 'PARTIALLY_PAID';
+      const isCash = (method === 'CASH');
 
       try {
         // 1. Direct Supabase payment registration
@@ -1630,6 +1747,7 @@
           }])
         });
 
+        // 2. Direct Supabase debt record update (status and remaining_amount)
         await querySupabase(`debts?id=eq.${encodeURIComponent(activeDebtToPay.id)}`, {
           method: 'PATCH',
           body: JSON.stringify({
@@ -1637,6 +1755,28 @@
             status: newStatus,
             updated_at: new Date().toISOString()
           })
+        });
+
+        // 3. Crucial Accounting: Insert income operation into operations table
+        // so money is calculated into revenue and the chosen payment method (bank / cash)!
+        const opPayId = 'op-pay-' + Date.now();
+        await querySupabase('operations', {
+          method: 'POST',
+          body: JSON.stringify([{
+            id: opPayId,
+            operation_code: 'PAY-' + Date.now().toString().slice(-4),
+            type: 'SALE',
+            payment_type: isCash ? 'CASH' : 'BANK_TRANSFER',
+            bank_name: isCash ? null : method,
+            transaction_reference: ref || null,
+            total_amount: amount,
+            counterparty_name: activeDebtToPay.debtor_name,
+            counterparty_phone: activeDebtToPay.phone || null,
+            status: 'PAID',
+            notes: 'Погашение долга от ' + activeDebtToPay.debtor_name + (ref ? ' (чек ' + ref + ')' : ''),
+            created_by: 'Владелец (Моб)',
+            created_at: new Date().toISOString()
+          }])
         });
 
         // Also notify local desktop if reachable
@@ -1649,10 +1789,10 @@
           });
         } catch(e) {}
 
-        alert('Погашение успешно зафиксировано в базе Supabase!');
+        const targetAccount = isCash ? 'кассу (наличные)' : `счёт «${method}»`;
+        alert(`Погашение на сумму ${formatTJS(amount)} TJS успешно проведено!\nСредства зачислены на ${targetAccount}.`);
         closePayModal();
-        fetchDebtsData();
-        fetchDashboardData();
+        await Promise.all([fetchDebtsData(), fetchDashboardData()]);
       } catch (err) {
         // Fallback to local desktop API
         try {
@@ -1671,8 +1811,7 @@
 
           alert('Погашение успешно зафиксировано!');
           closePayModal();
-          fetchDebtsData();
-          fetchDashboardData();
+          await Promise.all([fetchDebtsData(), fetchDashboardData()]);
         } catch (fallbackErr) {
           alert('Ошибка проведения оплаты: ' + (err.message || fallbackErr.message));
         }

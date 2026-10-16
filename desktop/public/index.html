@@ -1536,8 +1536,16 @@
 
         let total = 0;
         const grid = document.getElementById('debts-cards-grid');
-        grid.innerHTML = debts.map(d => {
-          total += d.remaining_amount;
+        const activeDebts = debts.filter(d => Number(d.remaining_amount) > 0 && d.status !== 'PAID');
+
+        if (activeDebts.length === 0) {
+          grid.innerHTML = '<div class="col-span-1 md:col-span-3 text-center p-8 bg-white rounded-2xl border border-slate-200 text-slate-500 font-bold">Активных должников нет. Все расчёты закрыты.</div>';
+          document.getElementById('debts-total-sum').innerText = '0.00 TJS';
+          return;
+        }
+
+        grid.innerHTML = activeDebts.map(d => {
+          total += Number(d.remaining_amount);
           return `
             <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex flex-col justify-between space-y-3">
               <div class="flex justify-between items-start">
@@ -1545,8 +1553,8 @@
                   <h4 class="font-bold text-sm text-slate-800">${d.debtor_name}</h4>
                   <div class="text-xs text-slate-500 font-mono">${d.phone || 'Телефон не указан'}</div>
                 </div>
-                <span class="px-2 py-0.5 rounded text-[10px] font-bold ${d.status === 'PAID' ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}">
-                  ${d.status === 'PAID' ? 'Погашен' : 'Активный долг'}
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800">
+                  Активный долг
                 </span>
               </div>
               <div class="text-xs text-slate-600 bg-slate-50 p-2.5 rounded-lg">
@@ -1554,7 +1562,7 @@
               </div>
               <div class="flex justify-between items-baseline pt-2 border-t border-slate-100">
                 <span class="text-xs text-slate-500">Остаток долга:</span>
-                <span class="text-lg font-black font-mono-numbers text-rose-600">${d.remaining_amount.toFixed(2)} TJS</span>
+                <span class="text-lg font-black font-mono-numbers text-rose-600">${Number(d.remaining_amount).toFixed(2)} TJS</span>
               </div>
             </div>
           `;
